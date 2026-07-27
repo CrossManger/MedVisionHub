@@ -1,0 +1,314 @@
+# ============================================================
+# MedVision Hub - Database Schema (Single Source of Truth)
+# ============================================================
+# Mọi thay đổi DB phải cập nhật file này TRƯỚC khi code.
+# Backend GORM models phải khớp 100% với schema dưới đây.
+# ============================================================
+
+database: postgresql
+version: "1.0"
+updated_at: "2026-07-27"
+
+tables:
+
+  # ──────────────────────────────────────────────
+  # 1. ROLES - Vai trò người dùng
+  # ──────────────────────────────────────────────
+  roles:
+    description: "Bảng định nghĩa các vai trò trong hệ thống"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: name
+        type: VARCHAR(50)
+        not_null: true
+        unique: true
+        comment: "admin | doctor | patient"
+      - name: description
+        type: TEXT
+        nullable: true
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+      - name: updated_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    seed_data:
+      - { id: 1, name: "admin", description: "Quản trị viên hệ thống" }
+      - { id: 2, name: "doctor", description: "Bác sĩ" }
+      - { id: 3, name: "patient", description: "Bệnh nhân" }
+
+  # ──────────────────────────────────────────────
+  # 2. PERMISSIONS - Quyền hạn
+  # ──────────────────────────────────────────────
+  permissions:
+    description: "Bảng định nghĩa các quyền hạn cụ thể"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: name
+        type: VARCHAR(100)
+        not_null: true
+        unique: true
+        comment: "VD: can_view_patient, can_create_patient, can_upload_image..."
+      - name: description
+        type: TEXT
+        nullable: true
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    seed_data:
+      - { id: 1, name: "can_view_patient", description: "Xem danh sách bệnh nhân" }
+      - { id: 2, name: "can_create_patient", description: "Tạo hồ sơ bệnh nhân mới" }
+      - { id: 3, name: "can_edit_patient", description: "Chỉnh sửa hồ sơ bệnh nhân" }
+      - { id: 4, name: "can_delete_patient", description: "Xóa hồ sơ bệnh nhân" }
+      - { id: 5, name: "can_upload_image", description: "Upload hình ảnh y tế" }
+      - { id: 6, name: "can_view_image", description: "Xem hình ảnh y tế" }
+      - { id: 7, name: "can_create_scan", description: "Tạo ca chụp mới" }
+      - { id: 8, name: "can_manage_users", description: "Quản lý tài khoản người dùng" }
+      - { id: 9, name: "can_manage_permissions", description: "Quản lý phân quyền hệ thống" }
+
+  # ──────────────────────────────────────────────
+  # 3. ROLE_PERMISSIONS - Bảng trung gian N-N
+  # ──────────────────────────────────────────────
+  role_permissions:
+    description: "Bảng trung gian liên kết Role với Permission (Many-to-Many)"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: role_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: roles.id, on_delete: CASCADE }
+      - name: permission_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: permissions.id, on_delete: CASCADE }
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    constraints:
+      - unique: [role_id, permission_id]
+    default_mapping:
+      admin: [1, 2, 3, 4, 5, 6, 7, 8, 9]  # Admin có toàn bộ quyền
+      doctor: [1, 2, 3, 5, 6, 7]            # Doctor: xem/tạo/sửa patient, upload/view ảnh, tạo scan
+      patient: [6]                            # Patient: chỉ xem ảnh của mình
+
+  # ──────────────────────────────────────────────
+  # 4. USERS - Tài khoản người dùng
+  # ──────────────────────────────────────────────
+  users:
+    description: "Bảng lưu thông tin tài khoản đăng nhập"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: username
+        type: VARCHAR(100)
+        not_null: true
+        unique: true
+      - name: email
+        type: VARCHAR(255)
+        not_null: true
+        unique: true
+      - name: password_hash
+        type: VARCHAR(255)
+        not_null: true
+      - name: full_name
+        type: VARCHAR(255)
+        not_null: true
+      - name: role_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: roles.id, on_delete: RESTRICT }
+      - name: is_active
+        type: BOOLEAN
+        default: true
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+      - name: updated_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    indexes:
+      - columns: [email]
+      - columns: [username]
+
+  # ──────────────────────────────────────────────
+  # 5. PATIENTS - Hồ sơ bệnh nhân
+  # ──────────────────────────────────────────────
+  patients:
+    description: "Bảng lưu hồ sơ thông tin bệnh nhân"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: user_id
+        type: BIGINT
+        nullable: true
+        foreign_key: { references: users.id, on_delete: SET NULL }
+        comment: "Map với tài khoản nếu bệnh nhân tự đăng nhập"
+      - name: full_name
+        type: VARCHAR(255)
+        not_null: true
+      - name: date_of_birth
+        type: DATE
+        nullable: true
+      - name: gender
+        type: VARCHAR(10)
+        comment: "male | female | other"
+      - name: phone
+        type: VARCHAR(20)
+        nullable: true
+      - name: address
+        type: TEXT
+        nullable: true
+      - name: medical_history
+        type: TEXT
+        nullable: true
+        comment: "Tiền sử bệnh án"
+      - name: created_by
+        type: BIGINT
+        nullable: true
+        foreign_key: { references: users.id, on_delete: SET NULL }
+        comment: "Bác sĩ tạo hồ sơ"
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+      - name: updated_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+
+  # ──────────────────────────────────────────────
+  # 6. SCAN_SESSIONS - Ca chụp
+  # ──────────────────────────────────────────────
+  scan_sessions:
+    description: "Bảng lưu thông tin ca chụp hình ảnh y tế"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: patient_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: patients.id, on_delete: CASCADE }
+      - name: doctor_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: users.id, on_delete: RESTRICT }
+      - name: scan_type
+        type: VARCHAR(50)
+        not_null: true
+        comment: "xray | mri | ct_scan | ultrasound"
+      - name: status
+        type: VARCHAR(30)
+        not_null: true
+        default: "'pending'"
+        comment: "pending | in_progress | completed"
+      - name: notes
+        type: TEXT
+        nullable: true
+        comment: "Ghi chú của bác sĩ về ca chụp"
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+      - name: updated_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    indexes:
+      - columns: [patient_id]
+      - columns: [doctor_id]
+
+  # ──────────────────────────────────────────────
+  # 7. IMAGES - Hình ảnh y tế
+  # ──────────────────────────────────────────────
+  images:
+    description: "Bảng lưu metadata hình ảnh y tế đã upload"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: session_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: scan_sessions.id, on_delete: CASCADE }
+      - name: file_name
+        type: VARCHAR(255)
+        not_null: true
+      - name: file_url
+        type: VARCHAR(500)
+        not_null: true
+        comment: "Đường dẫn tương đối tới file ảnh trên server"
+      - name: file_size
+        type: BIGINT
+        comment: "Kích thước file (bytes)"
+      - name: mime_type
+        type: VARCHAR(100)
+        comment: "image/jpeg, image/png, image/dicom..."
+      - name: diagnostic_result
+        type: TEXT
+        nullable: true
+        comment: "Kết quả chẩn đoán từ bác sĩ"
+      - name: uploaded_by
+        type: BIGINT
+        nullable: true
+        foreign_key: { references: users.id, on_delete: SET NULL }
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+      - name: updated_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    indexes:
+      - columns: [session_id]
+
+  # ──────────────────────────────────────────────
+  # 8. NOTIFICATIONS - Thông báo
+  # ──────────────────────────────────────────────
+  notifications:
+    description: "Bảng lưu thông báo gửi tới người dùng"
+    columns:
+      - name: id
+        type: BIGINT
+        primary_key: true
+        auto_increment: true
+      - name: user_id
+        type: BIGINT
+        not_null: true
+        foreign_key: { references: users.id, on_delete: CASCADE }
+      - name: title
+        type: VARCHAR(255)
+        not_null: true
+      - name: message
+        type: TEXT
+        not_null: true
+      - name: type
+        type: VARCHAR(50)
+        default: "'info'"
+        comment: "info | success | warning | error"
+      - name: is_read
+        type: BOOLEAN
+        default: false
+      - name: related_entity
+        type: VARCHAR(50)
+        nullable: true
+        comment: "scan_session | image | patient"
+      - name: related_id
+        type: BIGINT
+        nullable: true
+        comment: "ID của entity liên quan"
+      - name: created_at
+        type: TIMESTAMP
+        default: CURRENT_TIMESTAMP
+    indexes:
+      - columns: [user_id, is_read]

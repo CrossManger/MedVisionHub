@@ -1,0 +1,41 @@
+# ========================
+# MedVision Hub .gitignore
+# ========================
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === Environment ===
+.env
+.env.local
+.env.production
+
+# === Backend (Golang) ===
+app/backend/uploads/
+app/backend/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# === Frontend (ReactJS) ===
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.cache/
+*.tsbuildinfo
+
+# === Logs ===
+*.log
+npm-debug.log*
+
+# === Docker ===
+docker-compose.override.yml
