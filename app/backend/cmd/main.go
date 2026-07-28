@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"medvision-hub/internal/controllers"
+	"medvision-hub/internal/repos"
+	"medvision-hub/internal/services"
 	"medvision-hub/pkg/config"
 	"medvision-hub/pkg/database"
 
@@ -56,6 +59,20 @@ func main() {
 
 	// Serve static files from uploads/ directory
 	r.StaticFS("/uploads", http.Dir(uploadDir))
+
+	// Initialize Repositories, Services, and Controllers
+	userRepo := repos.NewUserRepository()
+	authService := services.NewAuthService(userRepo)
+	authController := controllers.NewAuthController(authService)
+
+	// API v1 Group
+	v1 := r.Group("/api/v1")
+	{
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authController.Register)
+		}
+	}
 
 	// Base health check route
 	r.GET("/api/health", func(c *gin.Context) {
