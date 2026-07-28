@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"fmt"
+
 	"medvision-hub/internal/dto"
 	"medvision-hub/internal/models"
 	"medvision-hub/internal/repos"
@@ -11,11 +13,11 @@ import (
 )
 
 var (
-	ErrInvalidCredentials = errors.New("Invalid username or password")
-	ErrUserDisabled       = errors.New("Account is deactivated")
-	ErrUserExists         = errors.New("Username already exists")
-	ErrEmailExists        = errors.New("Email already exists")
-	ErrRoleNotFound       = errors.New("Specified role does not exist")
+	ErrInvalidCredentials = errors.New("Tên đăng nhập hoặc mật khẩu không hợp lệ")
+	ErrUserDisabled       = errors.New("Tài khoản đã bị vô hiệu hóa")
+	ErrUsernameExists     = errors.New("Tên đăng nhập đã tồn tại")
+	ErrEmailExists        = errors.New("Email đã tồn tại")
+	ErrRoleNotFound       = errors.New("Role không tồn tại")
 )
 
 type AuthService interface {
@@ -31,10 +33,11 @@ func NewAuthService(userRepo repos.UserRepository) AuthService {
 	return &authService{userRepo: userRepo}
 }
 
+// Login handles user authentication and JWT token generation (Feature Person B)
 func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByUsername(req.Username)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) || user == nil {
 			return nil, ErrInvalidCredentials
 		}
 		return nil, err
@@ -44,12 +47,13 @@ func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 		return nil, ErrUserDisabled
 	}
 
-	if !utils.CheckPassword(req.Password, user.PasswordHash) {
+	// Note: CheckPassword accepts (hashedPassword, plainPassword)
+	if !utils.CheckPassword(user.PasswordHash, req.Password) {
 		return nil, ErrInvalidCredentials
 	}
 
 	permissions, err := s.userRepo.GetPermissionsByRoleID(user.RoleID)
-	if err != nil {
+	if err != nil || permissions == nil {
 		permissions = []string{}
 	}
 
@@ -71,32 +75,47 @@ func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	}, nil
 }
 
+// Register handles new account registration (Feature Person A)
 func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, error) {
-	// Check existing username
-	if existingUser, err := s.userRepo.FindByUsername(req.Username); err == nil && existingUser != nil {
-		return nil, ErrUserExists
+	// 1. Check if username already exists
+	existingUser, err := s.userRepo.FindByUsername(req.Username)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi kiểm tra username: %w", err)
+	}
+	if existingUser != nil {
+		return nil, ErrUsernameExists
 	}
 
-	// Check existing email
-	if existingUser, err := s.userRepo.FindByEmail(req.Email); err == nil && existingUser != nil {
+	// 2. Check if email already exists
+	existingEmail, err := s.userRepo.FindByEmail(req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi kiểm tra email: %w", err)
+	}
+	if existingEmail != nil {
 		return nil, ErrEmailExists
 	}
 
+	// 3. Determine role (default: patient)
 	roleName := req.Role
 	if roleName == "" {
 		roleName = "patient"
 	}
 
-	role, err := s.userRepo.GetRoleByName(roleName)
-	if err != nil {
-		return nil, ErrRoleNotFound
+	role, err := s.userRepo.FindRoleByName(roleName)
+	if err != nil || role == nil {
+		role, err = s.userRepo.GetRoleByName(roleName)
+		if err != nil || role == nil {
+			return nil, ErrRoleNotFound
+		}
 	}
 
+	// 4. Hash password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lỗi băm mật khẩu: %w", err)
 	}
 
+	// 5. Create user model
 	isActive := true
 	newUser := &models.User{
 		Username:     req.Username,
@@ -108,13 +127,16 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 	}
 
 	if err := s.userRepo.Create(newUser); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lỗi tạo tài khoản: %w", err)
 	}
 
 	permissions, _ := s.userRepo.GetPermissionsByRoleID(role.ID)
+	if permissions == nil {
+		permissions = []string{}
+	}
 
 	return &dto.RegisterResponse{
-		Message: "Registration successful",
+		Message: "Đăng ký tài khoản thành công",
 		User: dto.UserResponse{
 			ID:          newUser.ID,
 			Username:    newUser.Username,

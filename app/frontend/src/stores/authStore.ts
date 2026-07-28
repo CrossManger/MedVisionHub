@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { User, LoginRequest, RegisterRequest } from '../types/user';
+import { authService } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -12,33 +13,21 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
-  isAuthenticated: false,
+  token: localStorage.getItem('token'),
+  isAuthenticated: !!localStorage.getItem('token'),
 
   login: async (data: LoginRequest) => {
-    // Placeholder login logic
-    console.log('Logging in with', data);
-    const mockUser: User = {
-      id: '1',
-      username: data.username || 'admin',
-      email: 'admin@medvision.com',
-      fullName: 'Admin User',
-      role: 'ADMIN',
-    };
-    const mockToken = 'mock-jwt-token-123';
-    
-    localStorage.setItem('token', mockToken);
-    
+    const res = await authService.login(data);
+    localStorage.setItem('token', res.token);
     set({
-      user: mockUser,
-      token: mockToken,
+      user: res.user,
+      token: res.token,
       isAuthenticated: true,
     });
   },
 
   register: async (data: RegisterRequest) => {
-    // Placeholder register logic
-    console.log('Registering with', data);
+    await authService.register(data);
   },
 
   logout: () => {

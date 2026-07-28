@@ -13,7 +13,7 @@ type UserResponse struct {
 	Email       string   `json:"email"`
 	FullName    string   `json:"full_name"`
 	Role        string   `json:"role"`
-	Permissions []string `json:"permissions"`
+	Permissions []string `json:"permissions,omitempty"`
 }
 
 // LoginResponse represents the response payload upon successful login
@@ -28,7 +28,7 @@ type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 	FullName string `json:"full_name" binding:"required"`
-	Role     string `json:"role"` // Optional: doctor or patient, default: patient
+	Role     string `json:"role" binding:"omitempty,oneof=doctor patient"`
 }
 
 // RegisterResponse represents the response payload upon successful registration
