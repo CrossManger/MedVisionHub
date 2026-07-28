@@ -65,21 +65,21 @@
 
 ```mermaid
 flowchart TD
-    A[Bác sĩ / Người dùng] --> B(Vào chi tiết Bệnh nhân)
-    B --> C{Tạo Ca Chụp Mới?}
-    C -->|Có| D[Nhập thông tin: Loại ca chụp, Ghi chú, Bác sĩ chỉ định]
-    D --> E[Lưu Database: scan_sessions table]
-    E --> F[Điều hướng đến trang Chi tiết Ca Chụp]
+    A["Bác sĩ / Người dùng"] --> B("Vào chi tiết Bệnh nhân")
+    B --> C{"Tạo Ca Chụp Mới?"}
+    C -->|Có| D["Nhập thông tin: Loại ca chụp, Ghi chú, Bác sĩ chỉ định"]
+    D --> E["Lưu Database: scan_sessions table"]
+    E --> F["Điều hướng đến trang Chi tiết Ca Chụp"]
     C -->|Không| F
-    F --> G[Người dùng Kéo thả file ảnh (Upload Drag & Drop - Antd)]
-    G --> H{Kiểm tra Validate File (Type & Max Size)}
-    H -->|Hợp lệ| I[Gửi Multipart Form-Data Request lên API Backend]
-    H -->|Không hợp lệ| J[Hiển thị thông báo lỗi màu đỏ (Antd Message Error)]
-    I --> K[Backend: Tạo UUID chống trùng lặp, Lưu vào thư mục /uploads/images/]
-    K --> L[Backend: Lấy Metadata: file_size, mime_type]
-    L --> M[Backend: Lưu MetaData vào Database: images table]
-    M --> N[Frontend: Phản hồi tiến trình Axios 100%, Cập nhật lưới ảnh (Gallery Grid)]
-    N --> O[Click vào ảnh hiển thị Image Viewer Mode chuyên sâu với công cụ Zoom/Pan]
+    F --> G["Người dùng Kéo thả file ảnh (Upload Drag & Drop - Antd)"]
+    G --> H{"Kiểm tra Validate File (Type & Max Size)"}
+    H -->|Hợp lệ| I["Gửi Multipart Form-Data Request lên API Backend"]
+    H -->|Không hợp lệ| J["Hiển thị thông báo lỗi màu đỏ (Antd Message Error)"]
+    I --> K["Backend: Tạo UUID chống trùng lặp, Lưu vào thư mục /uploads/images/"]
+    K --> L["Backend: Lấy Metadata: file_size, mime_type"]
+    L --> M["Backend: Lưu MetaData vào Database: images table"]
+    M --> N["Frontend: Phản hồi tiến trình Axios 100%, Cập nhật lưới ảnh (Gallery Grid)"]
+    N --> O["Click vào ảnh hiển thị Image Viewer Mode chuyên sâu với công cụ Zoom/Pan"]
 ```
 
 ---
