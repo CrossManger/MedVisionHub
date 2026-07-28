@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"os"
 
+	"medvision-hub/internal/controllers"
+	"medvision-hub/internal/middlewares"
+	"medvision-hub/internal/repos"
+	"medvision-hub/internal/services"
 	"medvision-hub/pkg/config"
 	"medvision-hub/pkg/database"
 
@@ -31,6 +35,11 @@ func main() {
 			log.Fatalf("Database seeding failed: %v", err)
 		}
 	}
+
+	// Initialize repositories, services, controllers
+	userRepo := repos.NewUserRepository(database.DB)
+	authService := services.NewAuthService(userRepo)
+	authController := controllers.NewAuthController(authService)
 
 	// Create Gin router
 	r := gin.Default()
@@ -59,10 +68,34 @@ func main() {
 
 	// Base health check route
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"message": "MedVision Hub API is running",
 		})
 	})
+
+	// API v1 routes
+	apiV1 := r.Group("/api/v1")
+	{
+		authRoutes := apiV1.Group("/auth")
+		{
+			authRoutes.POST("/login", authController.Login)
+			authRoutes.POST("/register", authController.Register)
+		}
+
+		// Example protected endpoint to test AuthMiddleware
+		apiV1.GET("/me", middlewares.RequireAuth(), func(c *gin.Context) {
+			userID, _ := c.Get("user_id")
+			username, _ := c.Get("username")
+			role, _ := c.Get("role")
+
+			c.JSON(http.StatusOK, gin.H{
+				"message":  "You are authenticated",
+				"user_id":  userID,
+				"username": username,
+				"role":     role,
+			})
+		})
+	}
 
 	// Start server
 	port := config.GetEnv("APP_PORT", "8080")
