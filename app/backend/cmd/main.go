@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"medvision-hub/internal/controllers"
+	"medvision-hub/internal/middlewares"
 	"medvision-hub/internal/repos"
 	"medvision-hub/internal/services"
 	"medvision-hub/pkg/config"
@@ -35,6 +36,11 @@ func main() {
 		}
 	}
 
+	// Initialize repositories, services, controllers
+	userRepo := repos.NewUserRepository()
+	authService := services.NewAuthService(userRepo)
+	authController := controllers.NewAuthController(authService)
+
 	// Create Gin router
 	r := gin.Default()
 
@@ -60,26 +66,36 @@ func main() {
 	// Serve static files from uploads/ directory
 	r.StaticFS("/uploads", http.Dir(uploadDir))
 
-	// Initialize Repositories, Services, and Controllers
-	userRepo := repos.NewUserRepository()
-	authService := services.NewAuthService(userRepo)
-	authController := controllers.NewAuthController(authService)
-
-	// API v1 Group
-	v1 := r.Group("/api/v1")
-	{
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/register", authController.Register)
-		}
-	}
-
 	// Base health check route
 	r.GET("/api/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"message": "MedVision Hub API is running",
 		})
 	})
+
+	// API v1 routes
+	apiV1 := r.Group("/api/v1")
+	{
+		authRoutes := apiV1.Group("/auth")
+		{
+			authRoutes.POST("/login", authController.Login)
+			authRoutes.POST("/register", authController.Register)
+		}
+
+		// Example protected endpoint to test AuthMiddleware
+		apiV1.GET("/me", middlewares.RequireAuth(), func(c *gin.Context) {
+			userID, _ := c.Get("user_id")
+			username, _ := c.Get("username")
+			role, _ := c.Get("role")
+
+			c.JSON(http.StatusOK, gin.H{
+				"message":  "You are authenticated",
+				"user_id":  userID,
+				"username": username,
+				"role":     role,
+			})
+		})
+	}
 
 	// Start server
 	port := config.GetEnv("APP_PORT", "8080")

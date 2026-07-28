@@ -14,6 +14,8 @@ type UserRepository interface {
 	FindByEmail(email string) (*models.User, error)
 	FindByID(id uint) (*models.User, error)
 	FindRoleByName(roleName string) (*models.Role, error)
+	GetRoleByName(name string) (*models.Role, error)
+	GetPermissionsByRoleID(roleID uint) ([]string, error)
 }
 
 type userRepository struct {
@@ -74,4 +76,23 @@ func (r *userRepository) FindRoleByName(roleName string) (*models.Role, error) {
 		return nil, err
 	}
 	return &role, nil
+}
+
+// GetRoleByName is an alias for FindRoleByName for compatibility
+func (r *userRepository) GetRoleByName(name string) (*models.Role, error) {
+	return r.FindRoleByName(name)
+}
+
+func (r *userRepository) GetPermissionsByRoleID(roleID uint) ([]string, error) {
+	var permissionNames []string
+	err := r.db.Table("permissions").
+		Select("permissions.name").
+		Joins("JOIN role_permissions ON role_permissions.permission_id = permissions.id").
+		Where("role_permissions.role_id = ?", roleID).
+		Scan(&permissionNames).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return permissionNames, nil
 }

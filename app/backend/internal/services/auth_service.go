@@ -8,15 +8,20 @@ import (
 	"medvision-hub/internal/models"
 	"medvision-hub/internal/repos"
 	"medvision-hub/pkg/utils"
+
+	"gorm.io/gorm"
 )
 
 var (
-	ErrUsernameExists = errors.New("username đã tồn tại")
-	ErrEmailExists    = errors.New("email đã tồn tại")
-	ErrInvalidRole    = errors.New("vai trò (role) không hợp lệ")
+	ErrInvalidCredentials = errors.New("Tên đăng nhập hoặc mật khẩu không hợp lệ")
+	ErrUserDisabled       = errors.New("Tài khoản đã bị vô hiệu hóa")
+	ErrUsernameExists     = errors.New("Tên đăng nhập đã tồn tại")
+	ErrEmailExists        = errors.New("Email đã tồn tại")
+	ErrRoleNotFound       = errors.New("Role không tồn tại")
 )
 
 type AuthService interface {
+	Login(req dto.LoginRequest) (*dto.LoginResponse, error)
 	Register(req dto.RegisterRequest) (*dto.RegisterResponse, error)
 }
 
@@ -28,6 +33,49 @@ func NewAuthService(userRepo repos.UserRepository) AuthService {
 	return &authService{userRepo: userRepo}
 }
 
+// Login handles user authentication and JWT token generation (Feature Person B)
+func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
+	user, err := s.userRepo.FindByUsername(req.Username)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) || user == nil {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, err
+	}
+
+	if user.IsActive != nil && !*user.IsActive {
+		return nil, ErrUserDisabled
+	}
+
+	// Note: CheckPassword accepts (hashedPassword, plainPassword)
+	if !utils.CheckPassword(user.PasswordHash, req.Password) {
+		return nil, ErrInvalidCredentials
+	}
+
+	permissions, err := s.userRepo.GetPermissionsByRoleID(user.RoleID)
+	if err != nil || permissions == nil {
+		permissions = []string{}
+	}
+
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Role.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.LoginResponse{
+		Token: token,
+		User: dto.UserResponse{
+			ID:          user.ID,
+			Username:    user.Username,
+			Email:       user.Email,
+			FullName:    user.FullName,
+			Role:        user.Role.Name,
+			Permissions: permissions,
+		},
+	}, nil
+}
+
+// Register handles new account registration (Feature Person A)
 func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, error) {
 	// 1. Check if username already exists
 	existingUser, err := s.userRepo.FindByUsername(req.Username)
@@ -54,11 +102,11 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 	}
 
 	role, err := s.userRepo.FindRoleByName(roleName)
-	if err != nil {
-		return nil, fmt.Errorf("lỗi lấy thông tin vai trò: %w", err)
-	}
-	if role == nil {
-		return nil, ErrInvalidRole
+	if err != nil || role == nil {
+		role, err = s.userRepo.GetRoleByName(roleName)
+		if err != nil || role == nil {
+			return nil, ErrRoleNotFound
+		}
 	}
 
 	// 4. Hash password
@@ -68,29 +116,34 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 	}
 
 	// 5. Create user model
-	user := &models.User{
+	isActive := true
+	newUser := &models.User{
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		FullName:     req.FullName,
 		RoleID:       role.ID,
+		IsActive:     &isActive,
 	}
 
-	if err := s.userRepo.Create(user); err != nil {
+	if err := s.userRepo.Create(newUser); err != nil {
 		return nil, fmt.Errorf("lỗi tạo tài khoản: %w", err)
 	}
 
-	// Return response matching api_contracts.json
-	res := &dto.RegisterResponse{
-		Message: "Đăng ký tài khoản thành công",
-		User: dto.UserResponse{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			FullName: user.FullName,
-			Role:     role.Name,
-		},
+	permissions, _ := s.userRepo.GetPermissionsByRoleID(role.ID)
+	if permissions == nil {
+		permissions = []string{}
 	}
 
-	return res, nil
+	return &dto.RegisterResponse{
+		Message: "Đăng ký tài khoản thành công",
+		User: dto.UserResponse{
+			ID:          newUser.ID,
+			Username:    newUser.Username,
+			Email:       newUser.Email,
+			FullName:    newUser.FullName,
+			Role:        role.Name,
+			Permissions: permissions,
+		},
+	}, nil
 }

@@ -39,7 +39,7 @@ Dưới đây là bảng theo dõi tiến độ tổng thể của toàn bộ d�
 | Giai đoạn | Tính năng chính | Trạng thái | A (%) | B (%) | Tổng (%) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Phase 1** | Project Setup & Boilerplate | ✅ COMPLETED | 100% | 100% | 100% |
-| **Phase 2** | Authentication (Login/Register) | ⏳ NOT STARTED | 0% | 0% | 0% |
+| **Phase 2** | Authentication (Login/Register) | ✅ COMPLETED | 100% | 100% | 100% |
 | **Phase 3** | Patient Management | ⏳ NOT STARTED | 0% | 0% | 0% |
 | **Phase 4** | Scan Sessions & Image Data | ⏳ NOT STARTED | 0% | 0% | 0% |
 | **Phase 5** | Role & Permission Management | ⏳ NOT STARTED | 0% | 0% | 0% |
