@@ -12,14 +12,14 @@ Dự án áp dụng mô hình **Gitflow thu gọn (Feature Branch Workflow)** ph
 main       --------------------------------------------------------► (Production Ready)
               ▲                                       ▲
               │ Release / Merge                       │ Release / Merge
-develop    ───┴───────────────────────────────────────┴────────────► (Integration)
+dev    ───┴───────────────────────────────────────┴────────────► (Integration)
                 \                  /            \            /
 feature          └── feature/auth ┘              └── feature/patient-crud ┘
 ```
 
 ### Quy định tên nhánh:
-- **`main`**: Nhánh chứa source code ổn định nhất, đã sẵn sàng để demo hoặc deploy. *Chỉ merge từ `develop`.*
-- **`develop`**: Nhánh tích hợp chính. Tất cả tính năng mới sau khi hoàn thành sẽ được tạo Pull Request (PR) để merge vào `develop`.
+- **`main`**: Nhánh chứa source code ổn định nhất, đã sẵn sàng để demo hoặc deploy. *Chỉ merge từ `dev`.*
+- **`dev`**: Nhánh tích hợp chính. Tất cả tính năng mới sau khi hoàn thành sẽ được tạo Pull Request (PR) để merge vào `dev`.
 - **`feature/<tên-tính-năng>`**: Nhánh làm tính năng mới.
   - Ví dụ: `feature/auth-login`, `feature/patient-crud`, `feature/image-upload`, `feature/websocket-notification`.
 - **`fix/<mô-tả-bug>`**: Nhánh sửa lỗi.
@@ -31,19 +31,19 @@ feature          └── feature/auth ┘              └── feature/patie
 ## 2. Quy trình Phát triển 1 Feature (Step-by-Step)
 
 ```text
-1. Checkout develop & pull mới nhất
+1. Checkout dev & pull mới nhất
    └─► 2. Tạo nhánh feature/xxx
         └─► 3. Code & Commit (Tuân thủ Code Conventions)
              └─► 4. Push nhánh lên GitHub
-                  └─► 5. Tạo Pull Request (PR) vào develop
+                  └─► 5. Tạo Pull Request (PR) vào dev
                        └─► 6. Code Review (Bạn đồng đội hoặc AI)
-                            └─► 7. Merge vào develop
+                            └─► 7. Merge vào dev
 ```
 
-### Bước 1: Cập nhật code mới nhất từ `develop`
+### Bước 1: Cập nhật code mới nhất từ `dev`
 ```bash
-git checkout develop
-git pull origin develop
+git checkout dev
+git pull -r origin dev
 ```
 
 ### Bước 2: Tạo nhánh tính năng mới
@@ -64,7 +64,7 @@ git push -u origin feature/auth-login
 ```
 
 ### Bước 5: Tạo Pull Request (PR) & Review
-* Quản lý PR trên GitHub: Target branch là **`develop`**.
+* Quản lý PR trên GitHub: Target branch là **`dev`**.
 * Đảm bảo không có xung đột (merge conflicts) trước khi ấn Merge.
 
 ---
@@ -84,7 +84,7 @@ git push -u origin feature/auth-login
 
 ## 4. Cấu hình GitHub Actions (CI Pipeline Tham khảo)
 
-Dưới đây là file cấu hình GitHub Actions tự động kiểm tra code (Build & Test) mỗi khi tạo PR vào nhánh `develop` hoặc `main`.
+Dưới đây là file cấu hình GitHub Actions tự động kiểm tra code (Build & Test) mỗi khi tạo PR vào nhánh `dev` hoặc `main`.
 
 File lưu tại: `.github/workflows/ci.yml`
 
@@ -93,9 +93,9 @@ name: MedVision Hub CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 jobs:
   backend-check:
@@ -142,4 +142,4 @@ jobs:
 Khi yêu cầu AI Agent thực hiện task:
 1. Cho AI đọc trước các file trong `ai_artifacts/` (`db_schema.yaml`, `api_contracts.json`, `code_conventions.md`).
 2. Yêu cầu AI làm việc trên đúng nhánh `feature/xxx` hoặc sinh code theo đúng phase trong roadmap.
-3. Sau khi AI hoàn thành, tự kiểm tra lại runtime và tạo PR lên `develop`.
+3. Sau khi AI hoàn thành, tự kiểm tra lại runtime và tạo PR lên `dev`.
