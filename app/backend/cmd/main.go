@@ -49,6 +49,10 @@ func main() {
 	scanService := services.NewScanService(scanRepo, patientRepo)
 	scanController := controllers.NewScanController(scanService)
 
+	imageRepo := repos.NewImageRepository()
+	imageService := services.NewImageService(imageRepo, scanRepo)
+	imageController := controllers.NewImageController(imageService)
+
 	// Create Gin router
 	r := gin.Default()
 
@@ -108,6 +112,14 @@ func main() {
 		scanRoutes := apiV1.Group("/scans", middlewares.RequireAuth())
 		{
 			scanRoutes.GET("/:id", scanController.GetByID)
+			scanRoutes.POST("/:id/images", imageController.Upload)
+			scanRoutes.GET("/:id/images", imageController.GetByScan)
+		}
+
+		// Protected Image Routes
+		imageRoutes := apiV1.Group("/images", middlewares.RequireAuth())
+		{
+			imageRoutes.DELETE("/:id", imageController.Delete)
 		}
 
 		// Protected endpoint to test AuthMiddleware
@@ -123,16 +135,6 @@ func main() {
 				"role":     role,
 			})
 		})
-
-		// Patient routes (Phase 3) - all require JWT auth
-		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
-		{
-			patientRoutes.GET("", patientController.GetAll)
-			patientRoutes.GET("/:id", patientController.GetByID)
-			patientRoutes.POST("", patientController.Create)
-			patientRoutes.PUT("/:id", patientController.Update)
-			patientRoutes.DELETE("/:id", patientController.Delete)
-		}
 	}
 
 	// Start server

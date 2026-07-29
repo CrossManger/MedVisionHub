@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"medvision-hub/internal/services"
 
@@ -17,9 +18,22 @@ func NewImageController(imageService services.ImageService) *ImageController {
 	return &ImageController{imageService: imageService}
 }
 
-// Upload handles POST /api/v1/scans/:scan_id/images
+// getScanIDParam extracts scan ID from route params (:id or :scan_id)
+func getScanIDParam(c *gin.Context) (uint, error) {
+	raw := c.Param("scan_id")
+	if raw == "" {
+		raw = c.Param("id")
+	}
+	val, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return uint(val), nil
+}
+
+// Upload handles POST /api/v1/scans/:id/images
 func (c *ImageController) Upload(ctx *gin.Context) {
-	scanID, err := parseUintParam(ctx, "scan_id")
+	scanID, err := getScanIDParam(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID ca chụp không hợp lệ"})
 		return
@@ -64,9 +78,9 @@ func (c *ImageController) Upload(ctx *gin.Context) {
 	})
 }
 
-// GetByScan handles GET /api/v1/scans/:scan_id/images
+// GetByScan handles GET /api/v1/scans/:id/images
 func (c *ImageController) GetByScan(ctx *gin.Context) {
-	scanID, err := parseUintParam(ctx, "scan_id")
+	scanID, err := getScanIDParam(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID ca chụp không hợp lệ"})
 		return
