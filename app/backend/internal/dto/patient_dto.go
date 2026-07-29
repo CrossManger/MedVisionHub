@@ -14,22 +14,22 @@ type Pagination struct {
 type CreatePatientRequest struct {
 	UserID         *uint   `json:"user_id"`
 	FullName       string  `json:"full_name" binding:"required"`
-	DateOfBirth    *string `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02"`
+	DateOfBirth    *string `json:"date_of_birth" binding:"omitempty"` // YYYY-MM-DD format
 	Gender         *string `json:"gender" binding:"omitempty,oneof=male female other"`
-	Phone          *string `json:"phone"`
-	Address        *string `json:"address"`
-	MedicalHistory *string `json:"medical_history"`
+	Phone          *string `json:"phone" binding:"omitempty"`
+	Address        *string `json:"address" binding:"omitempty"`
+	MedicalHistory *string `json:"medical_history" binding:"omitempty"`
 }
 
 // UpdatePatientRequest defines the payload for PUT /patients/:id
 type UpdatePatientRequest struct {
 	UserID         *uint   `json:"user_id"`
 	FullName       string  `json:"full_name" binding:"required"`
-	DateOfBirth    *string `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02"`
+	DateOfBirth    *string `json:"date_of_birth" binding:"omitempty"` // YYYY-MM-DD format
 	Gender         *string `json:"gender" binding:"omitempty,oneof=male female other"`
-	Phone          *string `json:"phone"`
-	Address        *string `json:"address"`
-	MedicalHistory *string `json:"medical_history"`
+	Phone          *string `json:"phone" binding:"omitempty"`
+	Address        *string `json:"address" binding:"omitempty"`
+	MedicalHistory *string `json:"medical_history" binding:"omitempty"`
 }
 
 // PatientResponse defines the response structure for a single patient

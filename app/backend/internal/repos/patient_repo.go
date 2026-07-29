@@ -69,5 +69,12 @@ func (r *patientRepository) Update(patient *models.Patient) error {
 }
 
 func (r *patientRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Patient{}, id).Error
+	result := r.db.Delete(&models.Patient{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

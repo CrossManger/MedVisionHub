@@ -35,7 +35,7 @@ func (s *patientService) GetAllPatients(page, limit int, search string) (*dto.Pa
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 {
+	if limit < 1 || limit > 100 {
 		limit = 10
 	}
 

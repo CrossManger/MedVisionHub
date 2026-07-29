@@ -10,6 +10,8 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import PatientListPage from './pages/PatientListPage';
+import PatientDetailPage from './pages/PatientDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/patients" element={<PatientListPage />} />
+          <Route path="/patients/:id" element={<PatientDetailPage />} />
         </Route>
         
         {/* Fallback 404 Route */}
