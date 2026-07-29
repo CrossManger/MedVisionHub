@@ -1,7 +1,41 @@
 # Kế Hoạch Giai Đoạn 3: Quản Lý Bệnh Nhân (Patient Management CRUD)
 
-**Thời gian dự kiến:** ~2-3 ngày
-**Mục tiêu chính:** Cung cấp đầy đủ các chức năng CRUD (Create, Read, Update, Delete) cho đối tượng Bệnh nhân (Patient). Giúp các Bác sĩ và nhân viên y tế có thể tạo mới, xem chi tiết, chỉnh sửa thông tin, và xóa hồ sơ bệnh nhân trên hệ thống MedVisionHub.
+## ✅ TRẠNG THÁI: HOÀN THÀNH — 2026-07-29
+
+**Thời gian dự kiến:** ~2-3 ngày  
+**Thời gian thực tế:** Hoàn thành trước Phase 4
+
+## 📋 Tóm Tắt Kết Quả (Implementation Summary)
+
+### Backend Files Đã Tạo (👤 A)
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `internal/dto/patient_dto.go` | ✅ Tạo mới | CreatePatientRequest, UpdatePatientRequest, PatientResponse, PatientListResponse |
+| `internal/repos/patient_repo.go` | ✅ Tạo mới | FindAll (phân trang + LIKE search), Count, FindByID, Create, Update, Delete |
+| `internal/services/patient_service.go` | ✅ Tạo mới | GetAllPatients, GetPatientByID, CreatePatient, UpdatePatient, DeletePatient |
+| `internal/controllers/patient_controller.go` | ✅ Tạo mới | GetAll, GetByID, Create, Update, Delete handlers + `parseUintParam` helper |
+
+### Frontend Files Đã Tạo (👤 B)
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `src/types/patient.ts` | ✅ Tạo mới | Patient, PatientDetail, CreatePatientRequest, UpdatePatientRequest, PatientListResponse |
+| `src/services/patientService.ts` | ✅ Tạo mới | getAll, getById, create, update, delete |
+| `src/pages/PatientListPage.tsx` | ✅ Tạo mới | AntD Table + phân trang + search debounce + nút thêm/sửa/xóa |
+| `src/pages/PatientDetailPage.tsx` | ✅ Tạo mới (B, cập nhật bởi A) | Card thông tin + bảng scan sessions + nút chỉnh sửa |
+| `src/components/common/PatientForm.tsx` | ✅ Tạo mới | Modal AntD tái sử dụng cho Create và Edit + dayjs date formatting |
+
+### API Routes Đã Đăng Ký
+| Method | Route | Mô tả |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/patients` | Danh sách bệnh nhân (phân trang, tìm kiếm) |
+| `POST` | `/api/v1/patients` | Tạo hồ sơ bệnh nhân mới |
+| `GET` | `/api/v1/patients/:id` | Chi tiết bệnh nhân |
+| `PUT` | `/api/v1/patients/:id` | Cập nhật thông tin bệnh nhân |
+| `DELETE` | `/api/v1/patients/:id` | Xóa hồ sơ bệnh nhân |
+
+### Lỗi Đã Khắc Phục Trong Phase Này
+- ✅ **`patientService.getById` unwrap sai:** Sửa `response.data` → `response.data.data` để lấy đúng payload
+- ✅ **PatientForm.tsx stash conflict:** Giải quyết merge conflict, giữ kiểu dayjs type-safe (không dùng `any`)
 
 ---
 
@@ -163,9 +197,9 @@ Tất cả code Frontend sẽ do **(👤 B)** phụ trách. Không sửa bất k
 
 ### Danh Sách Kiểm Tra (Testing Checklist)
 
-- [ ] **(👤 B)** Frontend: Khởi tạo các form, pages. Menu Sidebar hoạt động đúng (nhờ A update).
-- [ ] **(👤 A)** Backend: Thử nghiệm tạo, đọc, sửa, xóa thành công, trả về đúng HTTP status (201, 200, 400).
-- [ ] **(👥 A + B)** Integration testing: kết nối FE gọi BE, kiểm tra CRUD flow end-to-end, code review chéo.
+- [x] **(👤 B)** Frontend: Khởi tạo các form, pages. Menu Sidebar hoạt động đúng (nhờ A update).
+- [x] **(👤 A)** Backend: Thử nghiệm tạo, đọc, sửa, xóa thành công, trả về đúng HTTP status (201, 200, 400).
+- [x] **(👥 A + B)** Integration testing: kết nối FE gọi BE, kiểm tra CRUD flow end-to-end, code review chéo.
 
 ---
 

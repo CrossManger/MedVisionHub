@@ -1,5 +1,41 @@
 # Phase 2: Authentication (Đăng nhập / Đăng ký)
-> **Trạng thái: ⏳ NOT STARTED** | **Thời gian dự kiến:** ~2-3 ngày
+
+## ✅ TRẠNG THÁI: HOÀN THÀNH — 2026-07-29
+
+**Thời gian dự kiến:** ~2-3 ngày  
+**Thời gian thực tế:** Hoàn thành trước Phase 3
+
+## 📋 Tóm Tắt Kết Quả (Implementation Summary)
+
+### Backend Files Đã Tạo
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `internal/dto/auth_dto.go` | ✅ Tạo mới | RegisterRequest, LoginRequest, LoginResponse |
+| `internal/repos/user_repo.go` | ✅ Tạo mới | FindByUsername, FindByEmail, Create, FindByID |
+| `internal/services/auth_service.go` | ✅ Tạo mới | Register (bcrypt hash), Login (bcrypt compare + JWT), bảo vệ Admin tự đăng ký |
+| `pkg/utils/jwt.go` | ✅ Tạo mới | GenerateToken, ValidateToken, ExtractClaims |
+| `pkg/utils/password.go` | ✅ Tạo mới | HashPassword, CheckPassword |
+| `internal/middlewares/auth_middleware.go` | ✅ Tạo mới | RequireAuth() — xác thực JWT Bearer token |
+| `internal/controllers/auth_controller.go` | ✅ Tạo mới | Register handler (201), Login handler (200 + token) |
+| `pkg/database/seed.go` | ✅ Cập nhật | Auto-seed 3 tài khoản demo: admin/doctor/patient (password: `123456`) |
+
+### Frontend Files Đã Tạo/Cập Nhật
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `src/types/user.ts` | ✅ Cập nhật | User, LoginResponse interfaces |
+| `src/services/api.ts` | ✅ Cập nhật | Axios interceptor tự động gắn JWT token |
+| `src/services/authService.ts` | ✅ Cập nhật | login(), register(), logout() gọi API thật |
+| `src/stores/authStore.ts` | ✅ Cập nhật | Zustand: login, logout, checkAuth, localStorage persistence |
+| `src/pages/LoginPage.tsx` | ✅ Cập nhật | Form AntD, gọi authStore.login, redirect /dashboard |
+| `src/pages/RegisterPage.tsx` | ✅ Cập nhật | Form AntD (chỉ doctor/patient — Admin bị chặn cả FE lẫn BE) |
+| `src/components/layout/ProtectedRoute.tsx` | ✅ Tạo mới | Guard redirect /login nếu chưa xác thực |
+
+### Tính Năng Bảo Mật Đặc Biệt
+- ✅ **Chặn Admin tự đăng ký:** Frontend không có option `admin`, Backend trả lỗi 400 nếu `role=admin` được gửi lên
+- ✅ **Nil pointer panic fix:** `auth_service.Login()` kiểm tra `user == nil` trước khi dùng, tránh runtime panic
+- ✅ **Demo Accounts Auto-seed:** `admin/123456`, `doctor/123456`, `patient/123456` tự động tạo khi khởi động server
+
+---
 
 ## Tổng quan
 Giai đoạn Authentication (Xác thực người dùng) là module cốt lõi đầu tiên cần hoàn thiện để bảo vệ dữ liệu y tế của MedVisionHub. Phase này thiết lập luồng Đăng ký (Register) và Đăng nhập (Login) bằng phương pháp **JWT (JSON Web Token)**. Hệ thống sẽ băm mật khẩu người dùng trước khi lưu trữ (sử dụng bcrypt), sinh token khi đăng nhập hợp lệ, và sử dụng middleware trên backend để bảo vệ các endpoints cần thiết. Trên Frontend, React sẽ quản lý trạng thái xác thực bằng Zustand và điều hướng người dùng bằng React Router dựa trên state này.
@@ -145,13 +181,13 @@ Giai đoạn Authentication (Xác thực người dùng) là module cốt lõi �
 ---
 
 ## Tiêu chí hoàn thành (Acceptance Criteria) & Checklist
-- [ ] (👤 A - BE, 👤 A - FE) **Đăng ký:** Đăng ký tài khoản mới thành công (HTTP 201), mật khẩu trong DB bị mã hóa Bcrypt. Đăng ký trùng Username/Email báo lỗi hợp lý (HTTP 409).
-- [ ] (👤 B - BE, 👤 B - FE) **Đăng nhập:** Đăng nhập bằng tài khoản vừa tạo thành công, trả về JWT. Đăng nhập sai báo lỗi HTTP 401.
-- [ ] (👤 B - BE, 👥 A + B) **Bảo vệ API:** Truy cập một API route bất kỳ được bảo vệ (sử dụng Auth Middleware) mà không có token (hoặc token sai) sẽ bị từ chối với HTTP 401.
-- [ ] (👤 B - FE) **Giao diện chặn truy cập (Guard):** Cố gắng truy cập URL `/dashboard` bằng trình duyệt khi chưa đăng nhập sẽ tự động redirect về `/login`.
-- [ ] (👤 B - FE) **Lưu phiên (Session Persistence):** Đăng nhập thành công -> F5 Refresh lại trình duyệt ở `/dashboard` -> Vẫn giữ trạng thái đăng nhập do token được lưu trong localStorage.
-- [ ] (👤 B - FE) **Đăng xuất (Logout):** Bấm nút Đăng xuất sẽ xóa token, reset Zustand state và chuyển về trang `/login`.
-- [ ] (👥 A + B) **Integration Test:** Đăng ký từ frontend -> tạo dữ liệu dưới BE -> Chuyển hướng trang login -> Đăng nhập thành công lấy token -> Vào được dashboard -> Cập nhật sidebar chính xác.
+- [x] (👤 A - BE, 👤 A - FE) **Đăng ký:** Đăng ký tài khoản mới thành công (HTTP 201), mật khẩu trong DB bị mã hóa Bcrypt. Đăng ký trùng Username/Email báo lỗi hợp lý (HTTP 409).
+- [x] (👤 B - BE, 👤 B - FE) **Đăng nhập:** Đăng nhập bằng tài khoản vừa tạo thành công, trả về JWT. Đăng nhập sai báo lỗi HTTP 401.
+- [x] (👤 B - BE, 👥 A + B) **Bảo vệ API:** Truy cập một API route bất kỳ được bảo vệ (sử dụng Auth Middleware) mà không có token (hoặc token sai) sẽ bị từ chối với HTTP 401.
+- [x] (👤 B - FE) **Giao diện chặn truy cập (Guard):** Cố gắng truy cập URL `/dashboard` bằng trình duyệt khi chưa đăng nhập sẽ tự động redirect về `/login`.
+- [x] (👤 B - FE) **Lưu phiên (Session Persistence):** Đăng nhập thành công -> F5 Refresh lại trình duyệt ở `/dashboard` -> Vẫn giữ trạng thái đăng nhập do token được lưu trong localStorage.
+- [x] (👤 B - FE) **Đăng xuất (Logout):** Bấm nút Đăng xuất sẽ xóa token, reset Zustand state và chuyển về trang `/login`.
+- [x] (👥 A + B) **Integration Test:** Đăng ký từ frontend -> tạo dữ liệu dưới BE -> Chuyển hướng trang login -> Đăng nhập thành công lấy token -> Vào được dashboard -> Cập nhật sidebar chính xác.
 
 ---
 

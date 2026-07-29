@@ -1,5 +1,21 @@
 # Phase 1: Project Setup & Boilerplate
-> **Trạng thái: ✅ COMPLETED**
+
+## ✅ TRẠNG THÁI: HOÀN THÀNH — 2026-07-29
+
+**Thời gian dự kiến:** ~1 ngày  
+**Thời gian thực tế:** Hoàn thành trước Phase 2
+
+## 📋 Kết Quả Nghiệm Thu
+
+| Tiêu chí | Kết quả |
+| :--- | :---: |
+| Backend `go run cmd/main.go` kết nối DB thành công, không lỗi | ✅ |
+| GORM AutoMigrate tạo đủ 8 bảng | ✅ |
+| Seed data roles (admin, doctor, patient) và 9 permissions | ✅ |
+| `GET /api/health` trả về `{"message": "MedVision Hub API is running"}` | ✅ |
+| Frontend `npm run dev` chạy được tại `http://localhost:5173` | ✅ |
+| Layout (Header + Sidebar + MainContent) hiển thị đúng | ✅ |
+| CORS Frontend ↔ Backend không bị lỗi | ✅ |
 
 ## Tổng quan
 Giai đoạn này tập trung vào việc khởi tạo bộ khung (skeleton) cho cả Backend (Golang) và Frontend (ReactJS). Mục đích là xây dựng một nền tảng vững chắc, chuẩn hóa cấu trúc thư mục, thiết lập các thư viện cốt lõi, kết nối thành công tới Database (PostgreSQL) và đảm bảo cả hai môi trường có thể chạy local thành công mà không gặp lỗi.
