@@ -26,16 +26,16 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         
-        {/* Protected Dashboard Routes */}
+        {/* Protected Routes */}
         <Route 
-          path="/" 
           element={
             <ProtectedRoute>
               <MainLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
         </Route>
         
         {/* Fallback 404 Route */}
