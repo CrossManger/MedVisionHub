@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import PatientListPage from './pages/PatientListPage';
 import PatientDetailPage from './pages/PatientDetailPage';
+import ScanDetailPage from './pages/ScanDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/patients" element={<PatientListPage />} />
           <Route path="/patients/:id" element={<PatientDetailPage />} />
-          <Route path="/scans/:id" element={<div className="p-6">Trang Chi Tiết Ca Chụp (Đang được Person A khởi tạo)</div>} />
+          <Route path="/scans/:id" element={<ScanDetailPage />} />
         </Route>
         
         {/* Fallback 404 Route */}

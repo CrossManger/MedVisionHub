@@ -32,10 +32,14 @@ type ImageService interface {
 
 type imageService struct {
 	imageRepo repos.ImageRepository
+	scanRepo  repos.ScanSessionRepository
 }
 
-func NewImageService(imageRepo repos.ImageRepository) ImageService {
-	return &imageService{imageRepo: imageRepo}
+func NewImageService(imageRepo repos.ImageRepository, scanRepo repos.ScanSessionRepository) ImageService {
+	return &imageService{
+		imageRepo: imageRepo,
+		scanRepo:  scanRepo,
+	}
 }
 
 func (s *imageService) UploadImage(scanID uint, fileHeader *multipart.FileHeader, uploadedBy uint) (*dto.ImageResponse, error) {
@@ -110,6 +114,11 @@ func (s *imageService) UploadImage(scanID uint, fileHeader *multipart.FileHeader
 		return nil, fmt.Errorf("không thể lưu metadata vào database: %w", err)
 	}
 
+	// Automatically transition scan session status from 'pending' -> 'in_progress'
+	if s.scanRepo != nil {
+		_ = s.scanRepo.UpdateStatus(scanID, "in_progress")
+	}
+
 	resp := mapImageToDTO(imgModel)
 	return &resp, nil
 }
@@ -149,7 +158,19 @@ func (s *imageService) DeleteImage(id uint) error {
 	}
 
 	// Delete DB record
-	return s.imageRepo.Delete(id)
+	if err := s.imageRepo.Delete(id); err != nil {
+		return err
+	}
+
+	// If all images in this scan session have been deleted, revert status back to 'pending'
+	if s.scanRepo != nil {
+		remainingCount, _ := s.scanRepo.CountImagesBySessionID(img.SessionID)
+		if remainingCount == 0 {
+			_ = s.scanRepo.UpdateStatus(img.SessionID, "pending")
+		}
+	}
+
+	return nil
 }
 
 func mapImageToDTO(img *models.Image) dto.ImageResponse {

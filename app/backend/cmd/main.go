@@ -45,6 +45,14 @@ func main() {
 	patientService := services.NewPatientService(patientRepo)
 	patientController := controllers.NewPatientController(patientService)
 
+	scanRepo := repos.NewScanSessionRepository()
+	scanService := services.NewScanService(scanRepo, patientRepo)
+	scanController := controllers.NewScanController(scanService)
+
+	imageRepo := repos.NewImageRepository()
+	imageService := services.NewImageService(imageRepo, scanRepo)
+	imageController := controllers.NewImageController(imageService)
+
 	// Create Gin router
 	r := gin.Default()
 
@@ -86,7 +94,35 @@ func main() {
 			authRoutes.POST("/register", authController.Register)
 		}
 
-		// Protected /me endpoint
+		// Protected Patient Routes
+		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
+		{
+			patientRoutes.GET("", patientController.GetAll)
+			patientRoutes.POST("", patientController.Create)
+			patientRoutes.GET("/:id", patientController.GetByID)
+			patientRoutes.PUT("/:id", patientController.Update)
+			patientRoutes.DELETE("/:id", patientController.Delete)
+
+			// Patient Scan Routes
+			patientRoutes.POST("/:id/scans", scanController.Create)
+			patientRoutes.GET("/:id/scans", scanController.GetByPatientID)
+		}
+
+		// Protected Scan Routes
+		scanRoutes := apiV1.Group("/scans", middlewares.RequireAuth())
+		{
+			scanRoutes.GET("/:id", scanController.GetByID)
+			scanRoutes.POST("/:id/images", imageController.Upload)
+			scanRoutes.GET("/:id/images", imageController.GetByScan)
+		}
+
+		// Protected Image Routes
+		imageRoutes := apiV1.Group("/images", middlewares.RequireAuth())
+		{
+			imageRoutes.DELETE("/:id", imageController.Delete)
+		}
+
+		// Protected endpoint to test AuthMiddleware
 		apiV1.GET("/me", middlewares.RequireAuth(), func(c *gin.Context) {
 			userID, _ := c.Get("user_id")
 			username, _ := c.Get("username")
@@ -99,16 +135,6 @@ func main() {
 				"role":     role,
 			})
 		})
-
-		// Patient routes (Phase 3) - all require JWT auth
-		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
-		{
-			patientRoutes.GET("", patientController.GetAll)
-			patientRoutes.GET("/:id", patientController.GetByID)
-			patientRoutes.POST("", patientController.Create)
-			patientRoutes.PUT("/:id", patientController.Update)
-			patientRoutes.DELETE("/:id", patientController.Delete)
-		}
 	}
 
 	// Start server

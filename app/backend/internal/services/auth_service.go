@@ -8,8 +8,6 @@ import (
 	"medvision-hub/internal/models"
 	"medvision-hub/internal/repos"
 	"medvision-hub/pkg/utils"
-
-	"gorm.io/gorm"
 )
 
 var (
@@ -18,6 +16,7 @@ var (
 	ErrUsernameExists     = errors.New("Tên đăng nhập đã tồn tại")
 	ErrEmailExists        = errors.New("Email đã tồn tại")
 	ErrRoleNotFound       = errors.New("Role không tồn tại")
+	ErrAdminSelfRegister  = errors.New("Không thể tự đăng ký tài khoản Quản trị viên (Admin)")
 )
 
 type AuthService interface {
@@ -33,14 +32,14 @@ func NewAuthService(userRepo repos.UserRepository) AuthService {
 	return &authService{userRepo: userRepo}
 }
 
-// Login handles user authentication and JWT token generation (Feature Person B)
+// Login handles user authentication and JWT token generation
 func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByUsername(req.Username)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) || user == nil {
-			return nil, ErrInvalidCredentials
-		}
 		return nil, err
+	}
+	if user == nil {
+		return nil, ErrInvalidCredentials
 	}
 
 	if user.IsActive != nil && !*user.IsActive {
@@ -75,7 +74,7 @@ func (s *authService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	}, nil
 }
 
-// Register handles new account registration (Feature Person A)
+// Register handles new account registration
 func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, error) {
 	// 1. Check if username already exists
 	existingUser, err := s.userRepo.FindByUsername(req.Username)
@@ -90,13 +89,16 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 	existingEmail, err := s.userRepo.FindByEmail(req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi kiểm tra email: %w", err)
-	}
+	}	
 	if existingEmail != nil {
 		return nil, ErrEmailExists
 	}
 
-	// 3. Determine role (default: patient)
+	// 3. Determine role (Public registration prohibits creating 'admin' role)
 	roleName := req.Role
+	if roleName == "admin" {
+		return nil, ErrAdminSelfRegister
+	}
 	if roleName == "" {
 		roleName = "patient"
 	}

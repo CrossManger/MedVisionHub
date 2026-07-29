@@ -1,8 +1,58 @@
 # Kế Hoạch Giai Đoạn 4: Ca Chụp Hình Ảnh & Tải Lên (Scan Sessions & Image Upload)
 
-**Thời gian dự kiến:** ~2-3 ngày
-**Mục tiêu chính:** Cho phép Bác sĩ tạo mới các ca chụp y tế (Scan Sessions) cho bệnh nhân. Cốt lõi của Phase này là tính năng Upload và Quản lý file hình ảnh y khoa.
+## ✅ TRẠNG THÁI: HOÀN THÀNH — 2026-07-29
+
+**Thời gian dự kiến:** ~2-3 ngày  
+**Thời gian thực tế:** Hoàn thành trong ngày 2026-07-29  
+**Mục tiêu chính:** Cho phép Bác sĩ tạo mới các ca chụp y tế (Scan Sessions) cho bệnh nhân. Cốt lõi của Phase này là tính năng Upload và Quản lý file hình ảnh y khoa.  
 **LƯU Ý QUAN TRỌNG:** Đây là mốc DEMO quan trọng của đồ án.
+
+---
+
+## 📋 Tóm Tắt Kết Quả (Implementation Summary)
+
+### Backend Files Đã Tạo/Cập Nhật
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `internal/dto/scan_dto.go` | ✅ Tạo mới | CreateScanRequest, ScanResponse, ScanListResponse |
+| `internal/repos/scan_session_repo.go` | ✅ Tạo mới | CRUD + UpdateStatus + CountImagesBySessionID |
+| `internal/services/scan_service.go` | ✅ Tạo mới | CreateScan, GetScansByPatient, GetScanByID |
+| `internal/controllers/scan_controller.go` | ✅ Tạo mới | Create, GetByPatientID, GetByID |
+| `internal/dto/image_dto.go` | ✅ Tạo mới | ImageResponse, ImageListResponse, UploadImageResponse |
+| `internal/repos/image_repo.go` | ✅ Tạo mới | Create, FindAllByScanID, FindByID, Delete |
+| `internal/services/image_service.go` | ✅ Tạo mới | UploadImage (UUID + validate), GetImagesByScan, DeleteImage (vật lý + DB) + **auto status transition** |
+| `internal/controllers/image_controller.go` | ✅ Tạo mới | Upload (multipart), GetByScan, Delete |
+| `cmd/main.go` | ✅ Cập nhật | Đăng ký đầy đủ scan routes + image routes |
+
+### Frontend Files Đã Tạo/Cập Nhật
+| File | Trạng thái | Mô tả |
+| :--- | :---: | :--- |
+| `src/types/scan.ts` | ✅ Tạo mới | ScanSession, CreateScanRequest interfaces |
+| `src/services/scanService.ts` | ✅ Tạo mới | getByPatientId, getById, create |
+| `src/components/common/ScanForm.tsx` | ✅ Tạo mới | Modal tạo ca chụp mới |
+| `src/pages/ScanDetailPage.tsx` | ✅ Tạo mới | Trang chi tiết ca chụp + tích hợp ImageUpload + ImageGallery |
+| `src/pages/PatientDetailPage.tsx` | ✅ Cập nhật | Thêm bảng Lịch sử ca chụp + nút Tạo ca chụp mới |
+| `src/types/image.ts` | ✅ Tạo mới (👤B) | MedicalImage, ImageListResponse interfaces |
+| `src/services/imageService.ts` | ✅ Tạo mới (👤B) | getByScanId, upload (với progress), delete |
+| `src/components/common/ImageUpload.tsx` | ✅ Tạo mới (👤B) | Drag & Drop, validate client-side, progress bar |
+| `src/components/common/ImageGallery.tsx` | ✅ Tạo mới (👤B) | Lưới ảnh thumbnail, xóa ảnh với Popconfirm |
+| `src/components/common/ImageViewer.tsx` | ✅ Tạo mới (👤B) | Modal xem ảnh: Zoom/Rotate/Fullscreen |
+| `src/App.tsx` | ✅ Cập nhật (👤B) | Thêm route `/scans/:id` → ScanDetailPage |
+
+### API Routes Đã Đăng Ký
+| Method | Route | Controller | Mô tả |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/patients/:id/scans` | ScanController.Create | Tạo ca chụp mới |
+| `GET` | `/api/v1/patients/:id/scans` | ScanController.GetByPatientID | Lấy danh sách ca chụp của bệnh nhân |
+| `GET` | `/api/v1/scans/:id` | ScanController.GetByID | Chi tiết ca chụp |
+| `POST` | `/api/v1/scans/:id/images` | ImageController.Upload | Upload ảnh y tế (Multipart) |
+| `GET` | `/api/v1/scans/:id/images` | ImageController.GetByScan | Danh sách ảnh của ca chụp |
+| `DELETE` | `/api/v1/images/:id` | ImageController.Delete | Xóa ảnh (DB + vật lý) |
+
+### Tính Năng Bonus Đã Triển Khai
+- ✅ **Auto Status Transition:** Upload ảnh đầu tiên → tự động chuyển `pending` → `in_progress`
+- ✅ **Auto Status Revert:** Xóa hết tất cả ảnh → tự động hoàn trả về `pending`
+- ✅ **Auto-refetch UI:** Sau upload/xóa ảnh, Frontend tự gọi lại API để cập nhật Tag trạng thái ngay, không cần F5
 
 ---
 
