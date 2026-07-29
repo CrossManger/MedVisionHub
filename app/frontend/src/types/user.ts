@@ -22,7 +22,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
-  role?: 'doctor' | 'patient';
+  role?: string;
 }
 
 export interface RegisterResponse {

@@ -11,7 +11,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <Title level={3}>Xin chào, {user?.fullName || 'Bác sĩ'}!</Title>
+        <Title level={3}>Xin chào, {user?.full_name || user?.username || 'Bác sĩ'}!</Title>
         <p className="text-gray-500">Chào mừng bạn quay trở lại MedVision Hub.</p>
       </div>
 
