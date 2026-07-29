@@ -41,6 +41,10 @@ func main() {
 	authService := services.NewAuthService(userRepo)
 	authController := controllers.NewAuthController(authService)
 
+	patientRepo := repos.NewPatientRepository()
+	patientService := services.NewPatientService(patientRepo)
+	patientController := controllers.NewPatientController(patientService)
+
 	// Create Gin router
 	r := gin.Default()
 
@@ -82,7 +86,7 @@ func main() {
 			authRoutes.POST("/register", authController.Register)
 		}
 
-		// Example protected endpoint to test AuthMiddleware
+		// Protected /me endpoint
 		apiV1.GET("/me", middlewares.RequireAuth(), func(c *gin.Context) {
 			userID, _ := c.Get("user_id")
 			username, _ := c.Get("username")
@@ -95,6 +99,16 @@ func main() {
 				"role":     role,
 			})
 		})
+
+		// Patient routes (Phase 3) - all require JWT auth
+		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
+		{
+			patientRoutes.GET("", patientController.GetAll)
+			patientRoutes.GET("/:id", patientController.GetByID)
+			patientRoutes.POST("", patientController.Create)
+			patientRoutes.PUT("/:id", patientController.Update)
+			patientRoutes.DELETE("/:id", patientController.Delete)
+		}
 	}
 
 	// Start server
