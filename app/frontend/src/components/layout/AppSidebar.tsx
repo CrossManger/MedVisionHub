@@ -2,30 +2,41 @@ import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DashboardOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
+import { useAuthStore } from '../../stores/authStore';
 
 const { Sider } = Layout;
 
 const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
 
-  const menuItems = [
+  const userRole = user?.role?.toLowerCase();
+
+  const allMenuItems = [
     {
       key: '/',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
+      roles: ['admin', 'doctor', 'patient'],
     },
     {
       key: '/patients',
       icon: <UserOutlined />,
       label: 'Quản lý Bệnh nhân',
+      roles: ['admin', 'doctor'],
     },
     {
       key: '/roles',
       icon: <SettingOutlined />,
       label: 'Quản lý Quyền',
+      roles: ['admin'],
     },
   ];
+
+  const filteredMenuItems = allMenuItems
+    .filter((item) => !userRole || item.roles.includes(userRole))
+    .map(({ roles, ...item }) => item);
 
   return (
     <Sider
@@ -41,7 +52,7 @@ const AppSidebar: React.FC = () => {
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
-        items={menuItems}
+        items={filteredMenuItems}
         onClick={({ key }) => navigate(key)}
         className="mt-4"
       />

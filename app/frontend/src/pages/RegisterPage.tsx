@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Select, message } from 'antd';
+import { Form, Input, Button, Card, Typography, Select, Alert, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined, SafetyOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -17,9 +17,11 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onFinish = async (values: FormValues) => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const payload: RegisterRequest = {
         full_name: values.full_name,
@@ -33,11 +35,14 @@ const RegisterPage: React.FC = () => {
       message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (error: unknown) {
+      let errMsg = 'Đăng ký thất bại. Vui lòng thử lại sau!';
       if (axios.isAxiosError(error) && error.response?.data?.error) {
-        message.error(error.response.data.error);
-      } else {
-        message.error('Đăng ký thất bại. Vui lòng thử lại sau!');
+        errMsg = error.response.data.error;
+      } else if (error instanceof Error) {
+        errMsg = error.message;
       }
+      setErrorMessage(errMsg);
+      message.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -57,6 +62,18 @@ const RegisterPage: React.FC = () => {
             Tạo tài khoản mới để trải nghiệm hệ thống
           </Text>
         </div>
+
+        {errorMessage && (
+          <Alert
+            message="Lỗi đăng ký"
+            description={errorMessage}
+            type="error"
+            showIcon
+            closable
+            onClose={() => setErrorMessage(null)}
+            className="mb-6 rounded-lg"
+          />
+        )}
 
         <Form
           name="register"

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, Typography, Alert, message } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -10,21 +10,32 @@ const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, isAuthenticated } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const onFinish = async (values: LoginRequest) => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       await login(values);
       message.success('Đăng nhập thành công!');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (error: unknown) {
+      let errMsg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản và mật khẩu!';
       if (axios.isAxiosError(error) && error.response?.data?.error) {
-        message.error(error.response.data.error);
-      } else {
-        message.error('Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản và mật khẩu!');
+        errMsg = error.response.data.error;
+      } else if (error instanceof Error) {
+        errMsg = error.message;
       }
+      setErrorMessage(errMsg);
+      message.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -44,6 +55,18 @@ const LoginPage: React.FC = () => {
             Hệ thống Quản lý & Cổng dữ liệu Hình ảnh Y tế
           </Text>
         </div>
+
+        {errorMessage && (
+          <Alert
+            message="Lỗi đăng nhập"
+            description={errorMessage}
+            type="error"
+            showIcon
+            closable
+            onClose={() => setErrorMessage(null)}
+            className="mb-6 rounded-lg"
+          />
+        )}
 
         <Form
           name="login"
