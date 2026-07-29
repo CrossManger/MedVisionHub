@@ -23,11 +23,15 @@ import {
   EnvironmentOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import type { PatientDetail, ScanSessionSummary } from '../types/patient';
+import type { PatientDetail } from '../types/patient';
+import type { ScanSession } from '../types/scan';
 import { patientService } from '../services/patientService';
+import { scanService } from '../services/scanService';
 import PatientForm from '../components/common/PatientForm';
+import ScanForm from '../components/common/ScanForm';
 
 const { Title, Text } = Typography;
 
@@ -56,9 +60,11 @@ const PatientDetailPage: React.FC = () => {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [patient, setPatient] = useState<PatientDetail | null>(null);
+  const [scans, setScans] = useState<ScanSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
+  const [scanFormOpen, setScanFormOpen] = useState(false);
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
   const fetchPatient = useCallback(async () => {
@@ -66,8 +72,17 @@ const PatientDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await patientService.getById(Number(id));
+      const patientId = Number(id);
+      const data = await patientService.getById(patientId);
       setPatient(data);
+      
+      // Fetch scan sessions for patient
+      try {
+        const scanData = await scanService.getByPatientId(patientId);
+        setScans(scanData);
+      } catch {
+        setScans([]);
+      }
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setError(
@@ -106,12 +121,13 @@ const PatientDetailPage: React.FC = () => {
   };
 
   // ── Scan Sessions Table ────────────────────────────────────────────────────
-  const scanColumns: TableProps<ScanSessionSummary>['columns'] = [
+  const scanColumns: TableProps<ScanSession>['columns'] = [
     {
-      title: 'ID',
+      title: 'ID Ca chụp',
       dataIndex: 'id',
       key: 'id',
-      width: 70,
+      width: 100,
+      render: (val: number) => <Text strong>#{val}</Text>,
     },
     {
       title: 'Loại chụp',
@@ -132,16 +148,33 @@ const PatientDetailPage: React.FC = () => {
       title: 'Số ảnh',
       dataIndex: 'image_count',
       key: 'image_count',
-      width: 90,
-      render: (count: number) => (
-        <Badge count={count} showZero color={count > 0 ? '#1677ff' : '#aaa'} />
+      width: 100,
+      render: (count?: number) => (
+        <Badge count={count ?? 0} showZero color={(count ?? 0) > 0 ? '#1677ff' : '#aaa'} />
       ),
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date: string) => formatDate(date),
+      render: (date: string) => formatDateTime(date),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 120,
+      render: (_, record) => (
+        <Button
+          type="link"
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/scans/${record.id}`);
+          }}
+        >
+          Xem chi tiết
+        </Button>
+      ),
     },
   ];
 
@@ -302,38 +335,60 @@ const PatientDetailPage: React.FC = () => {
       {/* Scan sessions */}
       <Card
         title={
-          <Space>
-            <MedicineBoxOutlined />
-            Lịch sử ca chụp
-            <Badge
-              count={patient.scan_sessions?.length ?? 0}
-              showZero
-              color="#1677ff"
-              overflowCount={999}
-            />
-          </Space>
+          <div className="flex items-center justify-between">
+            <Space>
+              <MedicineBoxOutlined />
+              Lịch sử ca chụp
+              <Badge
+                count={scans.length}
+                showZero
+                color="#1677ff"
+                overflowCount={999}
+              />
+            </Space>
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setScanFormOpen(true)}
+            >
+              Tạo ca chụp mới
+            </Button>
+          </div>
         }
         className="shadow-sm"
       >
         <Divider className="!mt-0" />
-        <Table<ScanSessionSummary>
+        <Table<ScanSession>
           rowKey="id"
           columns={scanColumns}
-          dataSource={patient.scan_sessions ?? []}
+          dataSource={scans}
           pagination={false}
           scroll={{ x: 600 }}
+          onRow={(record) => ({
+            onClick: () => navigate(`/scans/${record.id}`),
+            className: 'cursor-pointer hover:bg-blue-50/50 transition-colors',
+          })}
           locale={{
             emptyText: (
               <div className="py-8 text-center text-gray-400">
                 <MedicineBoxOutlined style={{ fontSize: 32, marginBottom: 8 }} />
                 <p>Bệnh nhân chưa có ca chụp nào.</p>
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => setScanFormOpen(true)}
+                  className="mt-2"
+                >
+                  Tạo ca chụp đầu tiên
+                </Button>
               </div>
             ),
           }}
         />
       </Card>
 
-      {/* Edit Modal */}
+      {/* Edit Patient Modal */}
       <PatientForm
         open={editFormOpen}
         editingPatient={patient}
@@ -342,6 +397,17 @@ const PatientDetailPage: React.FC = () => {
           fetchPatient();
         }}
         onCancel={() => setEditFormOpen(false)}
+      />
+
+      {/* Create Scan Modal */}
+      <ScanForm
+        patientId={patient.id}
+        open={scanFormOpen}
+        onSuccess={() => {
+          setScanFormOpen(false);
+          fetchPatient();
+        }}
+        onCancel={() => setScanFormOpen(false)}
       />
     </div>
   );

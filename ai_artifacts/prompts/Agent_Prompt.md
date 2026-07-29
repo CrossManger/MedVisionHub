@@ -11,6 +11,7 @@ Mục tiêu là xây dựng hệ thống với 6 giai đoạn phát triển, ph�
 
 ## 3. Quy ước Làm việc (Working Conventions)
 - **LUÔN LUÔN** kiểm tra các tài liệu trong thư mục `docs/` và `ai_artifacts/` trước khi bắt đầu code bất kỳ tính năng nào.
+- Tham khảo file `docs/demo_accounts.md` để sử dụng các tài khoản test mặc định (`admin`, `doctor`, `patient`).
 - Hiểu rõ mục tiêu của từng giai đoạn và không nhảy cóc qua các phase chưa hoàn thành.
 - **Giao tiếp:** Viết mã nguồn (code, tên biến, comment trong code) hoàn toàn bằng **Tiếng Anh**. Viết tài liệu (documentations, README, markdown) bằng **Tiếng Việt**.
 
