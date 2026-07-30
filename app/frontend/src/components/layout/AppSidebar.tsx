@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DashboardOutlined, UserOutlined, SettingOutlined, IdcardOutlined } from '@ant-design/icons';
+import { DashboardOutlined, TeamOutlined, SafetyOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 
 const { Sider } = Layout;
@@ -23,7 +23,7 @@ const AppSidebar: React.FC = () => {
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: 'Dashboard',
+      label: 'Tổng quan',
       forRoles: ['admin', 'doctor'],
     },
     {
@@ -35,14 +35,14 @@ const AppSidebar: React.FC = () => {
     },
     {
       key: '/patients',
-      icon: <UserOutlined />,
-      label: 'Quản lý Bệnh nhân',
+      icon: <TeamOutlined />,
+      label: 'Bệnh nhân',
       permission: 'can_view_patient',
     },
     {
       key: '/admin/permissions',
-      icon: <SettingOutlined />,
-      label: 'Quản lý Quyền',
+      icon: <SafetyOutlined />,
+      label: 'Phân quyền',
       permission: 'can_manage_permissions',
     },
   ];
@@ -51,11 +51,9 @@ const AppSidebar: React.FC = () => {
 
   const filteredMenuItems = allMenuItems
     .filter((item) => {
-      // Filter out items not meant for this specific role
       if (item.forRoles && !item.forRoles.includes(userRole)) {
         return false;
       }
-      // Filter out items missing required permission
       if (item.permission && !hasPermission(item.permission)) {
         return false;
       }
@@ -67,19 +65,23 @@ const AppSidebar: React.FC = () => {
     <Sider
       breakpoint="lg"
       collapsedWidth="0"
-      className="bg-[#001529]"
+      width={220}
       theme="dark"
+      style={{ background: '#0a1628' }}
     >
-      <div className="h-16 flex items-center justify-center text-white font-bold text-lg border-b border-gray-700">
-        MedVision Hub
+      {/* Logo / Brand */}
+      <div className="h-14 flex items-center justify-center border-b border-white/10">
+        <span className="text-white font-bold text-base tracking-wide">MedVision Hub</span>
       </div>
+
+      {/* Navigation */}
       <Menu
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
         items={filteredMenuItems}
         onClick={({ key }) => navigate(key)}
-        className="mt-4"
+        style={{ marginTop: 8, border: 'none', background: 'transparent' }}
       />
     </Sider>
   );
