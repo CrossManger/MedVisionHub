@@ -16,6 +16,14 @@ export const scanService = {
   },
 
   /**
+   * Get all scan sessions for the currently logged-in patient.
+   */
+  getMyScans: async (): Promise<ScanSession[]> => {
+    const response = await apiClient.get<ScanListResponse>('/my-scans');
+    return response.data.data;
+  },
+
+  /**
    * Get single scan session by ID.
    */
   getById: async (id: number): Promise<ScanSession> => {

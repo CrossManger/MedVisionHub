@@ -10,9 +10,9 @@
 ### Backend Files Đã Tạo
 | File | Trạng thái | Mô tả |
 | :--- | :---: | :--- |
-| `internal/dto/auth_dto.go` | ✅ Tạo mới | RegisterRequest, LoginRequest, LoginResponse |
+| `internal/dto/auth_dto.go` | ✅ Tạo mới (Cập nhật ở Phase 5) | `RegisterRequest` (thêm `Phone`), `LoginRequest`, `LoginResponse` |
 | `internal/repos/user_repo.go` | ✅ Tạo mới | FindByUsername, FindByEmail, Create, FindByID |
-| `internal/services/auth_service.go` | ✅ Tạo mới | Register (bcrypt hash), Login (bcrypt compare + JWT), bảo vệ Admin tự đăng ký |
+| `internal/services/auth_service.go` | ✅ Tạo mới (Cập nhật ở Phase 5) | Register (bcrypt hash + **auto-create Patient record** kèm `Phone`), Login (bcrypt compare + JWT), bảo vệ Admin tự đăng ký. Thêm `ForgotPassword`, `ResetPassword` |
 | `pkg/utils/jwt.go` | ✅ Tạo mới | GenerateToken, ValidateToken, ExtractClaims |
 | `pkg/utils/password.go` | ✅ Tạo mới | HashPassword, CheckPassword |
 | `internal/middlewares/auth_middleware.go` | ✅ Tạo mới | RequireAuth() — xác thực JWT Bearer token |
@@ -27,13 +27,14 @@
 | `src/services/authService.ts` | ✅ Cập nhật | login(), register(), logout() gọi API thật |
 | `src/stores/authStore.ts` | ✅ Cập nhật | Zustand: login, logout, checkAuth, localStorage persistence |
 | `src/pages/LoginPage.tsx` | ✅ Cập nhật | Form AntD, gọi authStore.login, redirect /dashboard |
-| `src/pages/RegisterPage.tsx` | ✅ Cập nhật | Form AntD (chỉ doctor/patient — Admin bị chặn cả FE lẫn BE) |
+| `src/pages/RegisterPage.tsx` | ✅ Cập nhật (Cập nhật ở Phase 5) | Form AntD (chỉ doctor/patient — Admin bị chặn cả FE lẫn BE). **Thêm ô nhập Số điện thoại** để Bác sĩ tìm kiếm bệnh nhân |
 | `src/components/layout/ProtectedRoute.tsx` | ✅ Tạo mới | Guard redirect /login nếu chưa xác thực |
 
 ### Tính Năng Bảo Mật Đặc Biệt
 - ✅ **Chặn Admin tự đăng ký:** Frontend không có option `admin`, Backend trả lỗi 400 nếu `role=admin` được gửi lên
 - ✅ **Nil pointer panic fix:** `auth_service.Login()` kiểm tra `user == nil` trước khi dùng, tránh runtime panic
 - ✅ **Demo Accounts Auto-seed:** `admin/123456`, `doctor/123456`, `patient/123456` tự động tạo khi khởi động server
+- ✅ **Auto-link Patient Record** *(bổ sung ở Phase 5):* Khi Bệnh nhân đăng ký tài khoản mới, hệ thống tự động tạo bản ghi `patients` có `user_id` nối sang tài khoản và lưu `Phone`
 
 ---
 

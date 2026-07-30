@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Select, Alert, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined, SafetyOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined, SafetyOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { RegisterRequest } from '../types/user';
@@ -27,6 +27,7 @@ const RegisterPage: React.FC = () => {
         full_name: values.full_name,
         username: values.username,
         email: values.email,
+        phone: values.phone,
         password: values.password,
         role: values.role || 'patient',
       };
@@ -122,6 +123,20 @@ const RegisterPage: React.FC = () => {
             <Input 
               prefix={<MailOutlined className="text-gray-400" />} 
               placeholder="user@example.com" 
+              className="rounded-lg"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Số điện thoại"
+            name="phone"
+            rules={[
+              { pattern: /^[0-9+\-\s]{7,20}$/, message: 'Số điện thoại không hợp lệ!' }
+            ]}
+          >
+            <Input 
+              prefix={<PhoneOutlined className="text-gray-400" />} 
+              placeholder="0901 234 567" 
               className="rounded-lg"
             />
           </Form.Item>

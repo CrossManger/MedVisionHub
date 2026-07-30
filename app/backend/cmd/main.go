@@ -53,6 +53,12 @@ func main() {
 	imageService := services.NewImageService(imageRepo, scanRepo)
 	imageController := controllers.NewImageController(imageService)
 
+	roleRepo := repos.NewRoleRepository()
+	permRepo := repos.NewPermissionRepository()
+	rolePermRepo := repos.NewRolePermissionRepository()
+	permService := services.NewPermissionService(roleRepo, permRepo, rolePermRepo)
+	permissionController := controllers.NewPermissionController(permService)
+
 	// Create Gin router
 	r := gin.Default()
 
@@ -92,34 +98,47 @@ func main() {
 		{
 			authRoutes.POST("/login", authController.Login)
 			authRoutes.POST("/register", authController.Register)
+			authRoutes.POST("/forgot-password", authController.ForgotPassword)
+			authRoutes.POST("/reset-password", authController.ResetPassword)
 		}
 
-		// Protected Patient Routes
+		// Patient Portal Route (Patient gets their own scans)
+		apiV1.GET("/my-scans", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), scanController.GetMyScans)
+
+		// Protected Patient Routes with RBAC Middleware
 		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
 		{
-			patientRoutes.GET("", patientController.GetAll)
-			patientRoutes.POST("", patientController.Create)
-			patientRoutes.GET("/:id", patientController.GetByID)
-			patientRoutes.PUT("/:id", patientController.Update)
-			patientRoutes.DELETE("/:id", patientController.Delete)
+			patientRoutes.GET("", middlewares.RequirePermission("can_view_patient"), patientController.GetAll)
+			patientRoutes.POST("", middlewares.RequirePermission("can_create_patient"), patientController.Create)
+			patientRoutes.GET("/:id", middlewares.RequirePermission("can_view_patient"), patientController.GetByID)
+			patientRoutes.PUT("/:id", middlewares.RequirePermission("can_edit_patient"), patientController.Update)
+			patientRoutes.DELETE("/:id", middlewares.RequirePermission("can_delete_patient"), patientController.Delete)
 
 			// Patient Scan Routes
-			patientRoutes.POST("/:id/scans", scanController.Create)
-			patientRoutes.GET("/:id/scans", scanController.GetByPatientID)
+			patientRoutes.POST("/:id/scans", middlewares.RequirePermission("can_create_scan"), scanController.Create)
+			patientRoutes.GET("/:id/scans", middlewares.RequirePermission("can_view_patient"), scanController.GetByPatientID)
 		}
 
-		// Protected Scan Routes
+		// Protected Scan Routes with RBAC Middleware
 		scanRoutes := apiV1.Group("/scans", middlewares.RequireAuth())
 		{
-			scanRoutes.GET("/:id", scanController.GetByID)
-			scanRoutes.POST("/:id/images", imageController.Upload)
-			scanRoutes.GET("/:id/images", imageController.GetByScan)
+			scanRoutes.GET("/:id", middlewares.RequirePermission("can_view_image"), scanController.GetByID)
+			scanRoutes.POST("/:id/images", middlewares.RequirePermission("can_upload_image"), imageController.Upload)
+			scanRoutes.GET("/:id/images", middlewares.RequirePermission("can_view_image"), imageController.GetByScan)
 		}
 
-		// Protected Image Routes
+		// Protected Image Routes with RBAC Middleware
 		imageRoutes := apiV1.Group("/images", middlewares.RequireAuth())
 		{
-			imageRoutes.DELETE("/:id", imageController.Delete)
+			imageRoutes.DELETE("/:id", middlewares.RequirePermission("can_upload_image"), imageController.Delete)
+		}
+
+		// Protected Admin Routes with RBAC Middleware
+		adminRoutes := apiV1.Group("/admin", middlewares.RequireAuth(), middlewares.RequirePermission("can_manage_permissions"))
+		{
+			adminRoutes.GET("/roles", permissionController.GetRoles)
+			adminRoutes.GET("/permissions", permissionController.GetPermissions)
+			adminRoutes.PUT("/roles/:role_id/permissions", permissionController.UpdateRolePermissions)
 		}
 
 		// Protected endpoint to test AuthMiddleware

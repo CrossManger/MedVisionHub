@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"medvision-hub/internal/dto"
@@ -18,10 +19,9 @@ import (
 )
 
 var (
-	ErrImageNotFound     = errors.New("không tìm thấy hình ảnh")
-	ErrInvalidFileType  = errors.New("định dạng file không hợp lệ (chấp nhận: jpg, jpeg, png, dicom, dcm)")
-	ErrFileTooLarge      = errors.New("dung lượng file vượt quá giới hạn (tối đa 10MB)")
-	MaxFileSize    int64 = 10 * 1024 * 1024 // 10 MB
+	ErrImageNotFound    = errors.New("không tìm thấy hình ảnh")
+	ErrInvalidFileType = errors.New("định dạng file không hợp lệ (chấp nhận: jpg, jpeg, png, dicom, dcm)")
+	ErrFileTooLarge     = errors.New("dung lượng file vượt quá giới hạn")
 )
 
 type ImageService interface {
@@ -42,10 +42,22 @@ func NewImageService(imageRepo repos.ImageRepository, scanRepo repos.ScanSession
 	}
 }
 
+// getMaxFileSizeBytes retrieves maximum allowed file size from .env MAX_FILE_SIZE_MB (default: 10MB)
+func getMaxFileSizeBytes() int64 {
+	sizeMBStr := config.GetEnv("MAX_FILE_SIZE_MB", "10")
+	sizeMB, err := strconv.ParseInt(sizeMBStr, 10, 64)
+	if err != nil || sizeMB <= 0 {
+		sizeMB = 10
+	}
+	return sizeMB * 1024 * 1024
+}
+
 func (s *imageService) UploadImage(scanID uint, fileHeader *multipart.FileHeader, uploadedBy uint) (*dto.ImageResponse, error) {
-	// Validate file size
-	if fileHeader.Size > MaxFileSize {
-		return nil, ErrFileTooLarge
+	// Validate file size dynamically based on .env config
+	maxSizeBytes := getMaxFileSizeBytes()
+	if fileHeader.Size > maxSizeBytes {
+		maxMB := maxSizeBytes / (1024 * 1024)
+		return nil, fmt.Errorf("%w (tối đa %dMB)", ErrFileTooLarge, maxMB)
 	}
 
 	// Validate file extension / mime type
@@ -68,7 +80,7 @@ func (s *imageService) UploadImage(scanID uint, fileHeader *multipart.FileHeader
 	}
 	defer src.Close()
 
-	// Ensure upload directory exists: uploads/images/
+	// Ensure upload directory exists
 	baseUploadDir := config.GetEnv("UPLOAD_DIR", "./uploads")
 	imagesDir := filepath.Join(baseUploadDir, "images")
 	if err := os.MkdirAll(imagesDir, os.ModePerm); err != nil {
@@ -148,12 +160,10 @@ func (s *imageService) DeleteImage(id uint) error {
 
 	// Delete physical file
 	baseUploadDir := config.GetEnv("UPLOAD_DIR", "./uploads")
-	// Extract relative file path from FileURL (e.g. /uploads/images/xyz.jpg -> images/xyz.jpg)
 	relPath := strings.TrimPrefix(img.FileURL, "/uploads/")
 	physicalPath := filepath.Join(baseUploadDir, relPath)
 
 	if err := os.Remove(physicalPath); err != nil && !os.IsNotExist(err) {
-		// Log warning but proceed with DB deletion if file is missing
 		fmt.Printf("Cảnh báo: Không tìm thấy hoặc không xóa được file vật lý %s: %v\n", physicalPath, err)
 	}
 

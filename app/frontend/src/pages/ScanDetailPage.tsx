@@ -25,6 +25,7 @@ import { scanService } from '../services/scanService';
 import { imageService } from '../services/imageService';
 import ImageUpload from '../components/common/ImageUpload';
 import ImageGallery from '../components/common/ImageGallery';
+import RequirePermission from '../components/common/RequirePermission';
 
 const { Title, Text } = Typography;
 
@@ -195,14 +196,16 @@ const ScanDetailPage: React.FC = () => {
       >
         <Divider className="!mt-0" />
         
-        {/* Upload Component */}
-        <ImageUpload
-          scanId={scan.id}
-          onUploadSuccess={(newImg) => {
-            setImages((prev) => [newImg, ...prev]);
-            fetchScanAndImages(); // Automatically refresh status and scan details
-          }}
-        />
+        {/* Upload Component (Requires can_upload_image permission) */}
+        <RequirePermission permission="can_upload_image">
+          <ImageUpload
+            scanId={scan.id}
+            onUploadSuccess={(newImg) => {
+              setImages((prev) => [newImg, ...prev]);
+              fetchScanAndImages(); // Automatically refresh status and scan details
+            }}
+          />
+        </RequirePermission>
 
         {/* Gallery Component */}
         <ImageGallery

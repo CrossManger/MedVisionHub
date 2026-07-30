@@ -2,6 +2,8 @@ package database
 
 import (
 	"log"
+	"time"
+
 	"medvision-hub/internal/models"
 	"medvision-hub/pkg/utils"
 )
@@ -14,7 +16,7 @@ func boolPtr(b bool) *bool {
 	return &b
 }
 
-// Seed populates the database with default roles, permissions, and sample users
+// Seed populates the database with default roles, permissions, and sample users/patients
 func Seed() error {
 	if DB == nil {
 		return nil
@@ -90,6 +92,29 @@ func Seed() error {
 				} else {
 					log.Printf("Seeded sample user: %s", u.Username)
 				}
+			}
+		}
+	}
+
+	// 5. Sample Patient Record linked to sample User "patient" (userID of patient)
+	var patientUser models.User
+	if err := DB.Where("username = ?", "patient").First(&patientUser).Error; err == nil {
+		var existingPatient models.Patient
+		if err := DB.Where("user_id = ?", patientUser.ID).First(&existingPatient).Error; err != nil {
+			dob := time.Date(1995, 5, 15, 0, 0, 0, 0, time.UTC)
+			creatorID := uint(2) // Doctor ID
+			p := models.Patient{
+				UserID:         &patientUser.ID,
+				FullName:       "Trần Văn Bệnh Nhân",
+				DateOfBirth:    &dob,
+				Gender:         strPtr("male"),
+				Phone:          strPtr("0901234567"),
+				Address:        strPtr("123 Nguyễn Trãi, Q.5, TP.HCM"),
+				MedicalHistory: strPtr("Tiền sử dị ứng Penicillin"),
+				CreatedBy:      &creatorID,
+			}
+			if err := DB.Create(&p).Error; err == nil {
+				log.Printf("Seeded sample patient record linked to user_id: %d", patientUser.ID)
 			}
 		}
 	}
