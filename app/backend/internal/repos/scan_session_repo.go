@@ -13,6 +13,7 @@ type ScanSessionRepository interface {
 	FindAllByPatientID(patientID uint) ([]models.ScanSession, error)
 	FindByID(id uint) (*models.ScanSession, error)
 	UpdateStatus(id uint, status string) error
+	UpdateStatusAndResult(id uint, status string, diagnosticResult *string) error
 	CountImagesBySessionID(sessionID uint) (int64, error)
 }
 
@@ -48,6 +49,16 @@ func (r *scanSessionRepository) FindByID(id uint) (*models.ScanSession, error) {
 
 func (r *scanSessionRepository) UpdateStatus(id uint, status string) error {
 	return r.db.Model(&models.ScanSession{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func (r *scanSessionRepository) UpdateStatusAndResult(id uint, status string, diagnosticResult *string) error {
+	updates := map[string]interface{}{
+		"status": status,
+	}
+	if diagnosticResult != nil {
+		updates["diagnostic_result"] = *diagnosticResult
+	}
+	return r.db.Model(&models.ScanSession{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (r *scanSessionRepository) CountImagesBySessionID(sessionID uint) (int64, error) {
