@@ -97,6 +97,31 @@ func (c *ScanController) GetByPatientID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// GetMyScans handles GET /api/v1/my-scans
+func (c *ScanController) GetMyScans(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực tài khoản"})
+		return
+	}
+
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case float64:
+		userID = uint(v)
+	}
+
+	res, err := c.scanService.GetMyScans(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, res)
+}
+
 // GetByID handles GET /api/v1/scans/:id
 func (c *ScanController) GetByID(ctx *gin.Context) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
@@ -105,10 +130,27 @@ func (c *ScanController) GetByID(ctx *gin.Context) {
 		return
 	}
 
-	res, err := c.scanService.GetScanByID(uint(id))
+	userIDVal, _ := ctx.Get("user_id")
+	roleVal, _ := ctx.Get("role")
+
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case float64:
+		userID = uint(v)
+	}
+
+	roleName, _ := roleVal.(string)
+
+	res, err := c.scanService.GetScanByID(uint(id), userID, roleName)
 	if err != nil {
 		if errors.Is(err, services.ErrScanNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, services.ErrUnauthorizedPatientAccess) {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

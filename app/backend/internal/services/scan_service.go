@@ -10,13 +10,15 @@ import (
 )
 
 var (
-	ErrScanNotFound = errors.New("không tìm thấy ca chụp y tế")
+	ErrScanNotFound               = errors.New("không tìm thấy ca chụp y tế")
+	ErrUnauthorizedPatientAccess = errors.New("bạn chỉ có thể xem thông tin ca chụp thuộc hồ sơ cá nhân của mình")
 )
 
 type ScanService interface {
 	CreateScan(patientID uint, req dto.CreateScanRequest, doctorID uint) (*dto.ScanResponse, error)
 	GetScansByPatientID(patientID uint) (*dto.ScanListResponse, error)
-	GetScanByID(id uint) (*dto.ScanResponse, error)
+	GetMyScans(userID uint) (*dto.ScanListResponse, error)
+	GetScanByID(id uint, requestingUserID uint, requestingRole string) (*dto.ScanResponse, error)
 }
 
 type scanService struct {
@@ -82,13 +84,32 @@ func (s *scanService) GetScansByPatientID(patientID uint) (*dto.ScanListResponse
 	}, nil
 }
 
-func (s *scanService) GetScanByID(id uint) (*dto.ScanResponse, error) {
+func (s *scanService) GetMyScans(userID uint) (*dto.ScanListResponse, error) {
+	patient, err := s.patientRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi kiểm tra bệnh nhân: %w", err)
+	}
+	if patient == nil {
+		return &dto.ScanListResponse{Data: []dto.ScanResponse{}}, nil
+	}
+	return s.GetScansByPatientID(patient.ID)
+}
+
+func (s *scanService) GetScanByID(id uint, requestingUserID uint, requestingRole string) (*dto.ScanResponse, error) {
 	scan, err := s.scanRepo.FindByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi lấy thông tin ca chụp: %w", err)
 	}
 	if scan == nil {
 		return nil, ErrScanNotFound
+	}
+
+	// Data Ownership check: If caller is a patient, verify they own this scan
+	if requestingRole == "patient" {
+		patient, err := s.patientRepo.FindByUserID(requestingUserID)
+		if err != nil || patient == nil || scan.PatientID != patient.ID {
+			return nil, ErrUnauthorizedPatientAccess
+		}
 	}
 
 	imageCount, _ := s.scanRepo.CountImagesBySessionID(scan.ID)

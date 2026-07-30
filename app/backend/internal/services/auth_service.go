@@ -93,7 +93,7 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 	existingEmail, err := s.userRepo.FindByEmail(req.Email)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi kiểm tra email: %w", err)
-	}	
+	}
 	if existingEmail != nil {
 		return nil, ErrEmailExists
 	}
@@ -136,6 +136,25 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 		return nil, fmt.Errorf("lỗi tạo tài khoản: %w", err)
 	}
 
+	// Auto-create and link patient record when a new patient account registers
+	if role.Name == "patient" {
+		patientRepo := repos.NewPatientRepository()
+		var phonePtr *string
+		if req.Phone != "" {
+			phonePtr = &req.Phone
+		}
+		patientRecord := &models.Patient{
+			UserID:   &newUser.ID,
+			FullName: newUser.FullName,
+			Phone:    phonePtr,
+		}
+		if err := patientRepo.Create(patientRecord); err != nil {
+			fmt.Printf("Lỗi tự tạo hồ sơ bệnh nhân: %v\n", err)
+		} else {
+			fmt.Printf("Đã tự động tạo hồ sơ bệnh nhân thành công cho user_id=%d, Họ tên=%s\n", newUser.ID, newUser.FullName)
+		}
+	}
+
 	permissions, _ := s.userRepo.GetPermissionsByRoleID(role.ID)
 	if permissions == nil {
 		permissions = []string{}
@@ -161,10 +180,8 @@ func (s *authService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 		return fmt.Errorf("lỗi tìm kiếm email: %w", err)
 	}
 	if user == nil {
-		// Return nil or clear error message as specified by API contract (Response 200)
 		return nil
 	}
-	// In standard flow, email token is generated.
 	return nil
 }
 

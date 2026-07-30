@@ -1,42 +1,52 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DashboardOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
+import { DashboardOutlined, UserOutlined, SettingOutlined, MedicineBoxOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 
 const { Sider } = Layout;
 
+interface MenuItemDef {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  permission?: string;
+}
+
 const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const hasPermission = useAuthStore((state) => state.hasPermission);
 
-  const userRole = user?.role?.toLowerCase();
-
-  const allMenuItems = [
+  const allMenuItems: MenuItemDef[] = [
     {
       key: '/',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-      roles: ['admin', 'doctor', 'patient'],
+    },
+    {
+      key: '/my-scans',
+      icon: <MedicineBoxOutlined />,
+      label: 'Hồ sơ Y tế của tôi',
+      permission: 'can_view_image',
     },
     {
       key: '/patients',
       icon: <UserOutlined />,
       label: 'Quản lý Bệnh nhân',
-      roles: ['admin', 'doctor'],
+      permission: 'can_view_patient',
     },
     {
-      key: '/roles',
+      key: '/admin/permissions',
       icon: <SettingOutlined />,
       label: 'Quản lý Quyền',
-      roles: ['admin'],
+      permission: 'can_manage_permissions',
     },
   ];
 
   const filteredMenuItems = allMenuItems
-    .filter((item) => !userRole || item.roles.includes(userRole))
-    .map(({ roles, ...item }) => item);
+    .filter((item) => !item.permission || hasPermission(item.permission))
+    .map(({ permission, ...item }) => item);
 
   return (
     <Sider
