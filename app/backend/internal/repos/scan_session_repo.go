@@ -15,6 +15,7 @@ type ScanSessionRepository interface {
 	UpdateStatus(id uint, status string) error
 	UpdateStatusAndResult(id uint, status string, diagnosticResult *string) error
 	CountImagesBySessionID(sessionID uint) (int64, error)
+	GetDashboardStats() (totalScans, completedScans, pendingScans, inProgressScans int64, scansByType map[string]int64, err error)
 }
 
 type scanSessionRepository struct {
@@ -65,4 +66,27 @@ func (r *scanSessionRepository) CountImagesBySessionID(sessionID uint) (int64, e
 	var count int64
 	err := r.db.Model(&models.Image{}).Where("session_id = ?", sessionID).Count(&count).Error
 	return count, err
+}
+
+func (r *scanSessionRepository) GetDashboardStats() (totalScans, completedScans, pendingScans, inProgressScans int64, scansByType map[string]int64, err error) {
+	err = r.db.Model(&models.ScanSession{}).Count(&totalScans).Error
+	if err != nil {
+		return
+	}
+
+	r.db.Model(&models.ScanSession{}).Where("status = ?", "completed").Count(&completedScans)
+	r.db.Model(&models.ScanSession{}).Where("status = ?", "pending").Count(&pendingScans)
+	r.db.Model(&models.ScanSession{}).Where("status = ?", "in_progress").Count(&inProgressScans)
+
+	scansByType = make(map[string]int64)
+	var typeCounts []struct {
+		ScanType string
+		Count    int64
+	}
+	r.db.Model(&models.ScanSession{}).Select("scan_type, count(*) as count").Group("scan_type").Scan(&typeCounts)
+	for _, tc := range typeCounts {
+		scansByType[tc.ScanType] = tc.Count
+	}
+
+	return
 }

@@ -23,6 +23,7 @@ type PatientService interface {
 	UpdatePatient(id uint, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
 	UpdateMyPatient(userID uint, req dto.UpdateMyPatientRequest) (*dto.PatientResponse, error)
 	DeletePatient(id uint) error
+	GetDashboardStats() (*dto.DashboardStatsResponse, error)
 }
 
 type patientService struct {
@@ -61,6 +62,48 @@ func (s *patientService) GetAllPatients(page, limit int, search string) (*dto.Pa
 			Total:      total,
 			TotalPages: totalPages,
 		},
+	}, nil
+}
+
+func (s *patientService) GetDashboardStats() (*dto.DashboardStatsResponse, error) {
+	patients, totalPatients, err := s.patientRepo.FindAll(1, 5, "")
+	if err != nil {
+		return nil, fmt.Errorf("lỗi lấy danh sách bệnh nhân cho dashboard: %w", err)
+	}
+
+	patientDTOs := make([]dto.PatientResponse, len(patients))
+	for i, p := range patients {
+		patientDTOs[i] = mapPatientToResponse(&p)
+	}
+
+	scanRepo := repos.NewScanSessionRepository()
+	totalScans, completedScans, pendingScans, inProgressScans, typeMap, err := scanRepo.GetDashboardStats()
+	if err != nil {
+		totalScans, completedScans, pendingScans, inProgressScans = 0, 0, 0, 0
+		typeMap = make(map[string]int64)
+	}
+
+	var completionRate float64 = 0
+	if totalScans > 0 {
+		completionRate = (float64(completedScans) / float64(totalScans)) * 100
+	} else if totalPatients > 0 {
+		completionRate = 100.0
+	}
+
+	return &dto.DashboardStatsResponse{
+		TotalPatients:   totalPatients,
+		TotalScans:      totalScans,
+		CompletedScans:  completedScans,
+		PendingScans:    pendingScans,
+		InProgressScans: inProgressScans,
+		CompletionRate:  completionRate,
+		ScansByType: dto.ScansByType{
+			Xray:       typeMap["xray"],
+			Mri:        typeMap["mri"],
+			CtScan:     typeMap["ct_scan"],
+			Ultrasound: typeMap["ultrasound"],
+		},
+		RecentPatients: patientDTOs,
 	}, nil
 }
 
