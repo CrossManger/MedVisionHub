@@ -16,6 +16,7 @@ import PatientListPage from './pages/PatientListPage';
 import PatientDetailPage from './pages/PatientDetailPage';
 import ScanDetailPage from './pages/ScanDetailPage';
 import MyScansPage from './pages/MyScansPage';
+import MyProfilePage from './pages/MyProfilePage';
 import PermissionManagementPage from './pages/PermissionManagementPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -45,6 +46,7 @@ function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/my-profile" element={<MyProfilePage />} />
           <Route path="/my-scans" element={<MyScansPage />} />
           <Route path="/patients" element={<PatientListPage />} />
           <Route path="/patients/:id" element={<PatientDetailPage />} />

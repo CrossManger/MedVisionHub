@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Descriptions,
@@ -9,30 +9,32 @@ import {
   Alert,
   Typography,
   Space,
-  Breadcrumb,
   Badge,
   Divider,
+  Modal,
+  Form,
+  Input,
+  DatePicker,
+  Select,
+  message,
   type TableProps,
 } from 'antd';
 import {
-  ArrowLeftOutlined,
-  EditOutlined,
   UserOutlined,
   CalendarOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
-  PlusOutlined,
+  EyeOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import type { PatientDetail } from '../types/patient';
 import type { ScanSession } from '../types/scan';
 import { patientService } from '../services/patientService';
 import { scanService } from '../services/scanService';
-import PatientForm from '../components/common/PatientForm';
-import ScanForm from '../components/common/ScanForm';
-import RequirePermission from '../components/common/RequirePermission';
 
 const { Title, Text } = Typography;
 
@@ -55,32 +57,29 @@ const SCAN_TYPE_LABEL: Record<string, string> = {
   ultrasound: 'Siêu âm',
 };
 
-const PatientDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
-  // ── State ──────────────────────────────────────────────────────────────────
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [scans, setScans] = useState<ScanSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editFormOpen, setEditFormOpen] = useState(false);
-  const [scanFormOpen, setScanFormOpen] = useState(false);
 
-  // ── Data Fetching ──────────────────────────────────────────────────────────
-  const fetchPatient = useCallback(async () => {
-    if (!id) return;
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
+
+  const fetchMyProfileData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const patientId = Number(id);
-      const data = await patientService.getById(patientId);
-      setPatient(data);
-      
-      // Fetch scan sessions for patient
+      const patientData = await patientService.getMyPatient();
+      setPatient(patientData);
+
       try {
-        const scanData = await scanService.getByPatientId(patientId);
-        setScans(scanData);
+        const scanData = await scanService.getMyScans();
+        setScans(scanData || []);
       } catch {
         setScans([]);
       }
@@ -88,19 +87,57 @@ const PatientDetailPage: React.FC = () => {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setError(
         status === 404
-          ? 'Không tìm thấy hồ sơ bệnh nhân này.'
-          : 'Đã có lỗi khi tải thông tin. Vui lòng thử lại.'
+          ? 'Chưa tìm thấy hồ sơ cá nhân của bạn. Vui lòng liên hệ bác sĩ.'
+          : 'Đã có lỗi khi tải hồ sơ cá nhân. Vui lòng thử lại sau.'
       );
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  };
 
   useEffect(() => {
-    fetchPatient();
-  }, [fetchPatient]);
+    fetchMyProfileData();
+  }, []);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  const handleOpenEditModal = () => {
+    if (!patient) return;
+    form.setFieldsValue({
+      full_name: patient.full_name,
+      date_of_birth: patient.date_of_birth ? dayjs(patient.date_of_birth) : null,
+      gender: patient.gender || undefined,
+      phone: patient.phone || '',
+      address: patient.address || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+
+      const payload = {
+        full_name: values.full_name,
+        date_of_birth: values.date_of_birth ? values.date_of_birth.format('YYYY-MM-DD') : undefined,
+        gender: values.gender,
+        phone: values.phone,
+        address: values.address,
+      };
+
+      await patientService.updateMyPatient(payload);
+      message.success('Cập nhật thông tin cá nhân thành công!');
+      setEditModalOpen(false);
+      fetchMyProfileData();
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      if (errMsg) {
+        message.error(errMsg);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('vi-VN', {
@@ -121,10 +158,9 @@ const PatientDetailPage: React.FC = () => {
     });
   };
 
-  // ── Scan Sessions Table ────────────────────────────────────────────────────
   const scanColumns: TableProps<ScanSession>['columns'] = [
     {
-      title: 'ID Ca chụp',
+      title: 'Mã Ca chụp',
       dataIndex: 'id',
       key: 'id',
       width: 100,
@@ -166,86 +202,63 @@ const PatientDetailPage: React.FC = () => {
       width: 120,
       render: (_, record) => (
         <Button
-          type="link"
+          type="primary"
           size="small"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/scans/${record.id}`);
           }}
         >
-          Xem chi tiết
+          Xem ảnh
         </Button>
       ),
     },
   ];
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   if (loading) {
-    return (
-      <div>
-        <Skeleton active paragraph={{ rows: 8 }} />
-      </div>
-    );
+    return <Skeleton active paragraph={{ rows: 8 }} />;
   }
 
   if (error || !patient) {
     return (
-      <div>
-        <Alert
-          type="error"
-          message={error ?? 'Không tìm thấy bệnh nhân'}
-          action={
-            <Button size="small" onClick={() => navigate('/patients')}>
-              Quay lại danh sách
-            </Button>
-          }
-        />
-      </div>
+      <Alert
+        type="warning"
+        message={error ?? 'Chưa tìm thấy hồ sơ bệnh nhân cá nhân.'}
+        className="my-4"
+      />
     );
   }
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <Breadcrumb
-        className="mb-4"
-        items={[
-          { title: <Link to="/patients">Quản lý Bệnh nhân</Link> },
-          { title: patient.full_name },
-        ]}
-      />
-
-      {/* Page title row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
-          <Title level={3} className="!mb-0">
-            Hồ sơ Bệnh nhân: {patient.full_name}
+        <div>
+          <Title level={3} className="!mb-1">
+            Hồ sơ Cá nhân của tôi
           </Title>
-        </Space>
+          <Text type="secondary">
+            Thông tin hành chính và lịch sử khám chữa bệnh của bạn tại hệ thống MedVision Hub.
+          </Text>
+        </div>
 
-        {/* Edit Patient Button (Requires can_edit_patient permission) */}
-        <RequirePermission permission="can_edit_patient">
-          <Button
-            type="primary"
-            onClick={() => setEditFormOpen(true)}
-            id="btn-edit-patient"
-          >
-            Chỉnh sửa
-          </Button>
-        </RequirePermission>
+        <Button
+          type="primary"
+          onClick={handleOpenEditModal}
+        >
+          Cập nhật thông tin
+        </Button>
       </div>
 
-      {/* Patient info card */}
+      {/* Patient Personal Info Card (Read-Only Medical History, Self-Editable Info) */}
       <Card
         title={
           <Space>
-            <UserOutlined />
-            Thông tin cá nhân
+            <UserOutlined className="text-blue-500" />
+            <span>Thông tin cá nhân</span>
+            <Tag color="blue">Bệnh nhân</Tag>
           </Space>
         }
-        className="mb-6 shadow-sm"
+        className="mb-6 shadow-sm rounded-xl"
       >
         <Descriptions column={{ xs: 1, sm: 2, md: 3 }} bordered size="small">
           <Descriptions.Item
@@ -256,7 +269,7 @@ const PatientDetailPage: React.FC = () => {
               </Space>
             }
           >
-            <Text strong>{patient.full_name}</Text>
+            <Text strong className="text-base text-gray-800">{patient.full_name}</Text>
           </Descriptions.Item>
 
           <Descriptions.Item
@@ -315,7 +328,7 @@ const PatientDetailPage: React.FC = () => {
             label={
               <Space>
                 <FileTextOutlined />
-                Tiền sử bệnh
+                Tiền sử bệnh án (Bác sĩ ghi nhận)
               </Space>
             }
             span={3}
@@ -323,48 +336,21 @@ const PatientDetailPage: React.FC = () => {
             {patient.medical_history ? (
               <Text className="whitespace-pre-wrap">{patient.medical_history}</Text>
             ) : (
-              <Text type="secondary">Chưa có thông tin</Text>
+              <Text type="secondary">Chưa có ghi nhận tiền sử bệnh</Text>
             )}
-          </Descriptions.Item>
-
-          <Descriptions.Item label="Ngày tạo hồ sơ">
-            {formatDateTime(patient.created_at)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Cập nhật lần cuối">
-            {formatDateTime(patient.updated_at)}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      {/* Scan sessions */}
+      {/* Patient Scan Sessions (Read-Only) */}
       <Card
         title={
-          <div className="flex items-center justify-between">
-            <Space>
-              <MedicineBoxOutlined />
-              Lịch sử ca chụp
-              <Badge
-                count={scans.length}
-                showZero
-                color="#1677ff"
-                overflowCount={999}
-              />
-            </Space>
-
-            {/* Create Scan Button (Requires can_create_scan permission) */}
-            <RequirePermission permission="can_create_scan">
-              <Button
-                type="primary"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => setScanFormOpen(true)}
-              >
-                Tạo ca chụp mới
-              </Button>
-            </RequirePermission>
-          </div>
+          <Space>
+            <MedicineBoxOutlined className="text-blue-500" />
+            <span>Lịch sử ca chụp y tế ({scans.length})</span>
+          </Space>
         }
-        className="shadow-sm"
+        className="shadow-sm rounded-xl"
       >
         <Divider className="!mt-0" />
         <Table<ScanSession>
@@ -380,47 +366,61 @@ const PatientDetailPage: React.FC = () => {
           locale={{
             emptyText: (
               <div className="py-8 text-center text-gray-400">
-                <MedicineBoxOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-                <p>Bệnh nhân chưa có ca chụp nào.</p>
-                <RequirePermission permission="can_create_scan">
-                  <Button
-                    type="dashed"
-                    icon={<PlusOutlined />}
-                    onClick={() => setScanFormOpen(true)}
-                    className="mt-2"
-                  >
-                    Tạo ca chụp đầu tiên
-                  </Button>
-                </RequirePermission>
+                <MedicineBoxOutlined style={{ fontSize: 36, marginBottom: 8 }} />
+                <p>Bạn chưa có ca chụp y tế nào trong hệ thống.</p>
               </div>
             ),
           }}
         />
       </Card>
 
-      {/* Edit Patient Modal */}
-      <PatientForm
-        open={editFormOpen}
-        editingPatient={patient}
-        onSuccess={() => {
-          setEditFormOpen(false);
-          fetchPatient();
-        }}
-        onCancel={() => setEditFormOpen(false)}
-      />
+      {/* Patient Self-Update Profile Modal */}
+      <Modal
+        title={
+          <Space>
+            <EditOutlined className="text-blue-600" />
+            <span>Cập nhật Thông tin Cá nhân</span>
+          </Space>
+        }
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        onOk={handleEditSubmit}
+        confirmLoading={submitting}
+        okText="Lưu thay đổi"
+        cancelText="Hủy"
+      >
+        <Form form={form} layout="vertical" className="mt-4">
+          <Form.Item
+            name="full_name"
+            label="Họ và tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
+          >
+            <Input placeholder="Nhập họ và tên đầy đủ" />
+          </Form.Item>
 
-      {/* Create Scan Modal */}
-      <ScanForm
-        patientId={patient.id}
-        open={scanFormOpen}
-        onSuccess={() => {
-          setScanFormOpen(false);
-          fetchPatient();
-        }}
-        onCancel={() => setScanFormOpen(false)}
-      />
+          <Form.Item name="date_of_birth" label="Ngày sinh">
+            <DatePicker className="w-full" format="YYYY-MM-DD" placeholder="Chọn ngày sinh" />
+          </Form.Item>
+
+          <Form.Item name="gender" label="Giới tính">
+            <Select placeholder="Chọn giới tính">
+              <Select.Option value="male">Nam</Select.Option>
+              <Select.Option value="female">Nữ</Select.Option>
+              <Select.Option value="other">Khác</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="phone" label="Số điện thoại">
+            <Input placeholder="Nhập số điện thoại" />
+          </Form.Item>
+
+          <Form.Item name="address" label="Địa chỉ">
+            <Input.TextArea rows={2} placeholder="Nhập địa chỉ cư trú" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default PatientDetailPage;
+export default MyProfilePage;

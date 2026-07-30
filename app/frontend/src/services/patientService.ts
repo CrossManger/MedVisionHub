@@ -4,6 +4,7 @@ import type {
   PatientDetail,
   CreatePatientRequest,
   UpdatePatientRequest,
+  UpdateMyPatientRequest,
   CreatePatientResponse,
 } from '../types/patient';
 
@@ -33,6 +34,25 @@ export const patientService = {
       return response.data.data;
     }
     return response.data as PatientDetail;
+  },
+
+  /**
+   * Get full detail of current logged-in patient.
+   */
+  getMyPatient: async (): Promise<PatientDetail> => {
+    const response = await apiClient.get<{ data: PatientDetail } | PatientDetail>('/my-patient');
+    if (response.data && typeof response.data === 'object' && 'data' in response.data && response.data.data) {
+      return response.data.data;
+    }
+    return response.data as PatientDetail;
+  },
+
+  /**
+   * Update current logged-in patient's personal profile info.
+   */
+  updateMyPatient: async (data: UpdateMyPatientRequest): Promise<{ message: string }> => {
+    const response = await apiClient.put<{ message: string }>('/my-patient', data);
+    return response.data;
   },
 
   /**

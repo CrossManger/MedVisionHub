@@ -31,7 +31,7 @@ func (r *scanSessionRepository) Create(scan *models.ScanSession) error {
 
 func (r *scanSessionRepository) FindAllByPatientID(patientID uint) ([]models.ScanSession, error) {
 	var scans []models.ScanSession
-	err := r.db.Where("patient_id = ?", patientID).Order("created_at DESC").Find(&scans).Error
+	err := r.db.Preload("Patient").Preload("Doctor").Where("patient_id = ?", patientID).Order("created_at DESC").Find(&scans).Error
 	return scans, err
 }
 

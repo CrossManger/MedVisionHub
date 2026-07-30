@@ -62,6 +62,14 @@ export interface UpdatePatientRequest {
   medical_history?: string;
 }
 
+export interface UpdateMyPatientRequest {
+  full_name?: string;
+  date_of_birth?: string; // YYYY-MM-DD
+  gender?: 'male' | 'female' | 'other';
+  phone?: string;
+  address?: string;
+}
+
 export interface CreatePatientResponse {
   message: string;
   patient: {
