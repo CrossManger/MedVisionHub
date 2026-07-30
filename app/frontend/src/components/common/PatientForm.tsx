@@ -65,7 +65,7 @@ const PatientForm: React.FC<PatientFormProps> = ({
 
     // Convert dayjs to YYYY-MM-DD string
     if ((values as { date_of_birth?: unknown }).date_of_birth) {
-      const dob = (values as { date_of_birth: dayjs.Dayjs }).date_of_birth;
+      const dob = (values as unknown as { date_of_birth: dayjs.Dayjs }).date_of_birth;
       (values as CreatePatientRequest).date_of_birth = dob.format('YYYY-MM-DD');
     }
 

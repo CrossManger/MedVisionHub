@@ -10,6 +10,7 @@ import (
 
 type UserRepository interface {
 	Create(user *models.User) error
+	UpdatePassword(userID uint, hashedPassword string) error
 	FindByUsername(username string) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 	FindByID(id uint) (*models.User, error)
@@ -28,6 +29,10 @@ func NewUserRepository() UserRepository {
 
 func (r *userRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
+}
+
+func (r *userRepository) UpdatePassword(userID uint, hashedPassword string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("password_hash", hashedPassword).Error
 }
 
 func (r *userRepository) FindByUsername(username string) (*models.User, error) {
