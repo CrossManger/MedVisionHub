@@ -32,6 +32,7 @@ import { patientService } from '../services/patientService';
 import { scanService } from '../services/scanService';
 import PatientForm from '../components/common/PatientForm';
 import ScanForm from '../components/common/ScanForm';
+import RequirePermission from '../components/common/RequirePermission';
 
 const { Title, Text } = Typography;
 
@@ -218,19 +219,22 @@ const PatientDetailPage: React.FC = () => {
       {/* Page title row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/patients')} />
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
           <Title level={3} className="!mb-0">
-            {patient.full_name}
+            Hồ sơ Bệnh nhân: {patient.full_name}
           </Title>
         </Space>
-        <Button
-          type="primary"
-          icon={<EditOutlined />}
-          onClick={() => setEditFormOpen(true)}
-          id="btn-edit-patient"
-        >
-          Chỉnh sửa
-        </Button>
+
+        {/* Edit Patient Button (Requires can_edit_patient permission) */}
+        <RequirePermission permission="can_edit_patient">
+          <Button
+            type="primary"
+            onClick={() => setEditFormOpen(true)}
+            id="btn-edit-patient"
+          >
+            Chỉnh sửa
+          </Button>
+        </RequirePermission>
       </div>
 
       {/* Patient info card */}
@@ -346,14 +350,18 @@ const PatientDetailPage: React.FC = () => {
                 overflowCount={999}
               />
             </Space>
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setScanFormOpen(true)}
-            >
-              Tạo ca chụp mới
-            </Button>
+
+            {/* Create Scan Button (Requires can_create_scan permission) */}
+            <RequirePermission permission="can_create_scan">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => setScanFormOpen(true)}
+              >
+                Tạo ca chụp mới
+              </Button>
+            </RequirePermission>
           </div>
         }
         className="shadow-sm"
@@ -374,14 +382,16 @@ const PatientDetailPage: React.FC = () => {
               <div className="py-8 text-center text-gray-400">
                 <MedicineBoxOutlined style={{ fontSize: 32, marginBottom: 8 }} />
                 <p>Bệnh nhân chưa có ca chụp nào.</p>
-                <Button
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={() => setScanFormOpen(true)}
-                  className="mt-2"
-                >
-                  Tạo ca chụp đầu tiên
-                </Button>
+                <RequirePermission permission="can_create_scan">
+                  <Button
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={() => setScanFormOpen(true)}
+                    className="mt-2"
+                  >
+                    Tạo ca chụp đầu tiên
+                  </Button>
+                </RequirePermission>
               </div>
             ),
           }}

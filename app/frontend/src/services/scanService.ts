@@ -2,6 +2,7 @@ import apiClient from './api';
 import type {
   ScanSession,
   CreateScanRequest,
+  CompleteScanRequest,
   ScanListResponse,
   ScanResponse,
 } from '../types/scan';
@@ -12,6 +13,14 @@ export const scanService = {
    */
   getByPatientId: async (patientId: number): Promise<ScanSession[]> => {
     const response = await apiClient.get<ScanListResponse>(`/patients/${patientId}/scans`);
+    return response.data.data;
+  },
+
+  /**
+   * Get all scan sessions for the currently logged-in patient.
+   */
+  getMyScans: async (): Promise<ScanSession[]> => {
+    const response = await apiClient.get<ScanListResponse>('/my-scans');
     return response.data.data;
   },
 
@@ -32,5 +41,12 @@ export const scanService = {
   create: async (patientId: number, data: CreateScanRequest): Promise<ScanSession> => {
     const response = await apiClient.post<ScanResponse>(`/patients/${patientId}/scans`, data);
     return response.data.data;
+  },
+
+  /**
+   * Complete a scan session with diagnostic result.
+   */
+  complete: async (scanId: number, data: CompleteScanRequest): Promise<void> => {
+    await apiClient.put(`/scans/${scanId}/complete`, data);
   },
 };

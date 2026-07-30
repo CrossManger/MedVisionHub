@@ -63,3 +63,39 @@ func (c *AuthController) Register(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusCreated, res)
 }
+
+// ForgotPassword handles POST /api/v1/auth/forgot-password
+func (c *AuthController) ForgotPassword(ctx *gin.Context) {
+	var req dto.ForgotPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Dữ liệu không hợp lệ: " + err.Error()})
+		return
+	}
+
+	if err := c.authService.ForgotPassword(req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi hệ thống khi yêu cầu đặt lại mật khẩu"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi"})
+}
+
+// ResetPassword handles POST /api/v1/auth/reset-password
+func (c *AuthController) ResetPassword(ctx *gin.Context) {
+	var req dto.ResetPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Dữ liệu không hợp lệ: " + err.Error()})
+		return
+	}
+
+	if err := c.authService.ResetPassword(req); err != nil {
+		if errors.Is(err, services.ErrInvalidResetToken) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi hệ thống khi đặt lại mật khẩu"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Đặt lại mật khẩu thành công"})
+}

@@ -10,15 +10,18 @@ type CreateScanRequest struct {
 
 // ScanResponse defines the response payload for a single scan session
 type ScanResponse struct {
-	ID         uint      `json:"id"`
-	PatientID  uint      `json:"patient_id"`
-	DoctorID   uint      `json:"doctor_id"`
-	ScanType   string    `json:"scan_type"`
-	Status     string    `json:"status"`
-	Notes      *string   `json:"notes"`
-	ImageCount int64     `json:"image_count"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID               uint      `json:"id"`
+	PatientID        uint      `json:"patient_id"`
+	PatientName      string    `json:"patient_name,omitempty"`
+	DoctorID         uint      `json:"doctor_id"`
+	DoctorName       string    `json:"doctor_name,omitempty"`
+	ScanType         string    `json:"scan_type"`
+	Status           string    `json:"status"`
+	Notes            *string   `json:"notes"`
+	DiagnosticResult *string   `json:"diagnostic_result"`
+	ImageCount       int64     `json:"image_count"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 // ScanListResponse defines the list response payload for GET /patients/:patient_id/scans

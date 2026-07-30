@@ -1,42 +1,67 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DashboardOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
+import { DashboardOutlined, UserOutlined, SettingOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 
 const { Sider } = Layout;
 
+interface MenuItemDef {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  permission?: string;
+  forRoles?: string[];
+}
+
 const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
 
-  const userRole = user?.role?.toLowerCase();
-
-  const allMenuItems = [
+  const allMenuItems: MenuItemDef[] = [
     {
       key: '/',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-      roles: ['admin', 'doctor', 'patient'],
+      forRoles: ['admin', 'doctor'],
+    },
+    {
+      key: '/my-profile',
+      icon: <IdcardOutlined />,
+      label: 'Hồ sơ Cá nhân',
+      permission: 'can_view_image',
+      forRoles: ['patient'],
     },
     {
       key: '/patients',
       icon: <UserOutlined />,
       label: 'Quản lý Bệnh nhân',
-      roles: ['admin', 'doctor'],
+      permission: 'can_view_patient',
     },
     {
-      key: '/roles',
+      key: '/admin/permissions',
       icon: <SettingOutlined />,
       label: 'Quản lý Quyền',
-      roles: ['admin'],
+      permission: 'can_manage_permissions',
     },
   ];
 
+  const userRole = user?.role?.toLowerCase() || '';
+
   const filteredMenuItems = allMenuItems
-    .filter((item) => !userRole || item.roles.includes(userRole))
-    .map(({ roles, ...item }) => item);
+    .filter((item) => {
+      // Filter out items not meant for this specific role
+      if (item.forRoles && !item.forRoles.includes(userRole)) {
+        return false;
+      }
+      // Filter out items missing required permission
+      if (item.permission && !hasPermission(item.permission)) {
+        return false;
+      }
+      return true;
+    })
+    .map(({ permission, forRoles, ...item }) => item);
 
   return (
     <Sider

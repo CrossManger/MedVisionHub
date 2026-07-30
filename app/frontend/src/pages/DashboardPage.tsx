@@ -1,4 +1,5 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { Row, Col, Card, Statistic, Typography } from 'antd';
 import { TeamOutlined, FileTextOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/authStore';
@@ -7,6 +8,11 @@ const { Title } = Typography;
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
+
+  // Patients do not need a separate Dashboard; auto-redirect to their personal profile
+  if (user?.role === 'patient') {
+    return <Navigate to="/my-profile" replace />;
+  }
 
   return (
     <div>

@@ -56,6 +56,69 @@ func (c *PatientController) GetByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": res})
 }
 
+// GetMyPatient handles GET /api/v1/my-patient
+func (c *PatientController) GetMyPatient(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực tài khoản"})
+		return
+	}
+
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case float64:
+		userID = uint(v)
+	}
+
+	res, err := c.patientService.GetMyPatient(userID)
+	if err != nil {
+		if errors.Is(err, services.ErrPatientNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Không tìm thấy hồ sơ cá nhân của bạn"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": res})
+}
+
+// UpdateMyPatient handles PUT /api/v1/my-patient
+func (c *PatientController) UpdateMyPatient(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực tài khoản"})
+		return
+	}
+
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case float64:
+		userID = uint(v)
+	}
+
+	var req dto.UpdateMyPatientRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Dữ liệu không hợp lệ: " + err.Error()})
+		return
+	}
+
+	res, err := c.patientService.UpdateMyPatient(userID, req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Cập nhật thông tin cá nhân thành công",
+		"data":    res,
+	})
+}
+
 // Create handles POST /api/v1/patients
 func (c *PatientController) Create(ctx *gin.Context) {
 	var req dto.CreatePatientRequest

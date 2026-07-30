@@ -11,6 +11,10 @@ import {
   Space,
   Breadcrumb,
   Divider,
+  Modal,
+  Form,
+  Input,
+  message,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -18,6 +22,9 @@ import {
   CalendarOutlined,
   UserOutlined,
   PictureOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons';
 import type { ScanSession } from '../types/scan';
 import type { MedicalImage } from '../types/image';
@@ -25,8 +32,11 @@ import { scanService } from '../services/scanService';
 import { imageService } from '../services/imageService';
 import ImageUpload from '../components/common/ImageUpload';
 import ImageGallery from '../components/common/ImageGallery';
+import RequirePermission from '../components/common/RequirePermission';
+import { useAuthStore } from '../stores/authStore';
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const SCAN_STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: 'Chờ xử lý', color: 'orange' },
@@ -44,11 +54,19 @@ const SCAN_TYPE_LABEL: Record<string, string> = {
 const ScanDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, hasPermission } = useAuthStore();
 
   const [scan, setScan] = useState<ScanSession | null>(null);
   const [images, setImages] = useState<MedicalImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Complete Scan Modal state
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [submittingComplete, setSubmittingComplete] = useState(false);
+  const [form] = Form.useForm();
+
+  const isPatientRole = user?.role === 'patient' || !hasPermission('can_view_patient');
 
   const fetchScanAndImages = useCallback(async () => {
     if (!id) return;
@@ -81,6 +99,26 @@ const ScanDetailPage: React.FC = () => {
     fetchScanAndImages();
   }, [fetchScanAndImages]);
 
+  const handleCompleteSubmit = async () => {
+    if (!scan) return;
+    try {
+      const values = await form.validateFields();
+      setSubmittingComplete(true);
+      await scanService.complete(scan.id, { diagnostic_result: values.diagnostic_result });
+      message.success('Đã hoàn tất ca chụp và gửi kết quả chẩn đoán thành công!');
+      setCompleteModalOpen(false);
+      form.resetFields();
+      fetchScanAndImages();
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      if (errMsg) {
+        message.error(errMsg);
+      }
+    } finally {
+      setSubmittingComplete(false);
+    }
+  };
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('vi-VN', {
@@ -102,8 +140,8 @@ const ScanDetailPage: React.FC = () => {
         type="error"
         message={error || 'Không tìm thấy ca chụp'}
         action={
-          <Button size="small" onClick={() => navigate('/patients')}>
-            Quay lại danh sách bệnh nhân
+          <Button size="small" onClick={() => navigate(isPatientRole ? '/my-profile' : '/patients')}>
+            {isPatientRole ? 'Quay lại Hồ sơ cá nhân' : 'Quay lại danh sách bệnh nhân'}
           </Button>
         }
       />
@@ -111,26 +149,71 @@ const ScanDetailPage: React.FC = () => {
   }
 
   const statusInfo = SCAN_STATUS_MAP[scan.status] || { label: scan.status, color: 'default' };
+  const isCompleted = scan.status === 'completed';
+
+  // Dynamic Breadcrumb based on User Role
+  const breadcrumbItems = isPatientRole
+    ? [
+        { title: <Link to="/my-profile">Hồ sơ Cá nhân</Link> },
+        { title: `Chi tiết Ca chụp #${scan.id}` },
+      ]
+    : [
+        { title: <Link to="/patients">Quản lý Bệnh nhân</Link> },
+        { title: <Link to={`/patients/${scan.patient_id}`}>Hồ sơ bệnh nhân #{scan.patient_id}</Link> },
+        { title: `Ca chụp #${scan.id}` },
+      ];
+
+  const handleBackNavigation = () => {
+    if (isPatientRole) {
+      navigate('/my-profile');
+    } else {
+      navigate(`/patients/${scan.patient_id}`);
+    }
+  };
 
   return (
     <div>
-      <Breadcrumb
-        className="mb-4"
-        items={[
-          { title: <Link to="/patients">Quản lý Bệnh nhân</Link> },
-          { title: <Link to={`/patients/${scan.patient_id}`}>Hồ sơ bệnh nhân #{scan.patient_id}</Link> },
-          { title: `Ca chụp #${scan.id}` },
-        ]}
-      />
+      {/* Dynamic Role-Based Breadcrumb */}
+      <Breadcrumb className="mb-4" items={breadcrumbItems} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/patients/${scan.patient_id}`)} />
+          <Button icon={<ArrowLeftOutlined />} onClick={handleBackNavigation} />
           <Title level={3} className="!mb-0">
             Chi tiết Ca chụp #{scan.id}
           </Title>
         </Space>
+
+        {/* Complete Scan Action Button for Doctors */}
+        <RequirePermission permission="can_create_scan">
+          {!isCompleted && (
+            <Button
+              type="primary"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              icon={<CheckCircleOutlined />}
+              onClick={() => setCompleteModalOpen(true)}
+            >
+              Hoàn tất chẩn đoán
+            </Button>
+          )}
+        </RequirePermission>
       </div>
+
+      {/* Diagnostic Result Banner if completed */}
+      {isCompleted && scan.diagnostic_result && (
+        <Alert
+          type="success"
+          showIcon
+          icon={<CheckCircleOutlined className="text-xl" />}
+          message={<Text strong className="text-base">Kết quả chẩn đoán y tế</Text>}
+          description={
+            <div className="mt-1">
+              <Text className="whitespace-pre-wrap">{scan.diagnostic_result}</Text>
+            </div>
+          }
+          className="mb-6 rounded-xl border-green-200 bg-green-50/80"
+        />
+      )}
 
       {/* Overview Card */}
       <Card
@@ -151,14 +234,21 @@ const ScanDetailPage: React.FC = () => {
             <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
           </Descriptions.Item>
 
-          <Descriptions.Item label="Mã Bệnh nhân">
-            <Link to={`/patients/${scan.patient_id}`}>Bệnh nhân #{scan.patient_id}</Link>
+          <Descriptions.Item label="Bệnh nhân sở hữu">
+            <Space>
+              <SolutionOutlined className="text-indigo-500" />
+              <Text strong>
+                {scan.patient_name ? `${scan.patient_name} (#${scan.patient_id})` : `Bệnh nhân #${scan.patient_id}`}
+              </Text>
+            </Space>
           </Descriptions.Item>
 
           <Descriptions.Item label="Bác sĩ chỉ định">
             <Space>
-              <UserOutlined />
-              Bác sĩ #{scan.doctor_id}
+              <UserOutlined className="text-blue-500" />
+              <Text strong>
+                {scan.doctor_name ? `${scan.doctor_name} (#${scan.doctor_id})` : `Bác sĩ #${scan.doctor_id}`}
+              </Text>
             </Space>
           </Descriptions.Item>
 
@@ -195,14 +285,18 @@ const ScanDetailPage: React.FC = () => {
       >
         <Divider className="!mt-0" />
         
-        {/* Upload Component */}
-        <ImageUpload
-          scanId={scan.id}
-          onUploadSuccess={(newImg) => {
-            setImages((prev) => [newImg, ...prev]);
-            fetchScanAndImages(); // Automatically refresh status and scan details
-          }}
-        />
+        {/* Upload Component (Only if scan not completed) */}
+        {!isCompleted && (
+          <RequirePermission permission="can_upload_image">
+            <ImageUpload
+              scanId={scan.id}
+              onUploadSuccess={(newImg) => {
+                setImages((prev) => [newImg, ...prev]);
+                fetchScanAndImages(); // Refresh scan details
+              }}
+            />
+          </RequirePermission>
+        )}
 
         {/* Gallery Component */}
         <ImageGallery
@@ -213,6 +307,38 @@ const ScanDetailPage: React.FC = () => {
           }}
         />
       </Card>
+
+      {/* Complete Scan Modal */}
+      <Modal
+        title={
+          <Space>
+            <FileTextOutlined className="text-green-600" />
+            <span>Hoàn tất chẩn đoán ca chụp #{scan.id}</span>
+          </Space>
+        }
+        open={completeModalOpen}
+        onCancel={() => setCompleteModalOpen(false)}
+        onOk={handleCompleteSubmit}
+        confirmLoading={submittingComplete}
+        okText="Xác nhận hoàn tất"
+        cancelText="Hủy"
+        okButtonProps={{ style: { backgroundColor: '#52c41a', borderColor: '#52c41a' } }}
+      >
+        <Form form={form} layout="vertical" className="mt-4">
+          <Form.Item
+            name="diagnostic_result"
+            label="Kết quả chẩn đoán y tế"
+            rules={[{ required: true, message: 'Vui lòng nhập kết quả chẩn đoán cho bệnh nhân!' }]}
+          >
+            <TextArea
+              rows={4}
+              placeholder="Nhập nhận xét, chẩn đoán chi tiết của bác sĩ (ví dụ: Hình ảnh X-quang tim phổi bình thường, không thấy vôi hóa bất thường...)"
+              maxLength={2000}
+              showCount
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

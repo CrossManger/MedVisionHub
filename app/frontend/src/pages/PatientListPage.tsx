@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Patient, Pagination } from '../types/patient';
 import { patientService } from '../services/patientService';
 import PatientForm from '../components/common/PatientForm';
+import RequirePermission from '../components/common/RequirePermission';
 
 const { Title } = Typography;
 
@@ -205,31 +206,35 @@ const PatientListPage: React.FC = () => {
               onClick={() => navigate(`/patients/${record.id}`)}
             />
           </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Popconfirm
-              title="Xác nhận xóa bệnh nhân"
-              description={`Bạn có chắc chắn muốn xóa hồ sơ của "${record.full_name}"?`}
-              okText="Xóa"
-              cancelText="Hủy"
-              okType="danger"
-              onConfirm={() => handleDelete(record.id)}
-            >
+          <RequirePermission permission="can_edit_patient">
+            <Tooltip title="Chỉnh sửa">
               <Button
                 type="text"
                 size="small"
-                danger
-                icon={<DeleteOutlined />}
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
               />
-            </Popconfirm>
-          </Tooltip>
+            </Tooltip>
+          </RequirePermission>
+          <RequirePermission permission="can_delete_patient">
+            <Tooltip title="Xóa">
+              <Popconfirm
+                title="Xác nhận xóa bệnh nhân"
+                description={`Bạn có chắc chắn muốn xóa hồ sơ của "${record.full_name}"?`}
+                okText="Xóa"
+                cancelText="Hủy"
+                okType="danger"
+                onConfirm={() => handleDelete(record.id)}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </Tooltip>
+          </RequirePermission>
         </Space>
       ),
     },
@@ -250,15 +255,17 @@ const PatientListPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={handleAddNew}
-          id="btn-add-patient"
-        >
-          Thêm bệnh nhân
-        </Button>
+        <RequirePermission permission="can_create_patient">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="large"
+            onClick={handleAddNew}
+            id="btn-add-patient"
+          >
+            Thêm bệnh nhân
+          </Button>
+        </RequirePermission>
       </div>
 
       {/* Search toolbar */}

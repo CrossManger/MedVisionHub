@@ -32,6 +32,15 @@ type UpdatePatientRequest struct {
 	MedicalHistory *string `json:"medical_history" binding:"omitempty"`
 }
 
+// UpdateMyPatientRequest defines the payload for PUT /my-patient (Patient self-update)
+type UpdateMyPatientRequest struct {
+	FullName    *string `json:"full_name" binding:"omitempty"`
+	DateOfBirth *string `json:"date_of_birth" binding:"omitempty"`
+	Gender      *string `json:"gender" binding:"omitempty"`
+	Phone       *string `json:"phone" binding:"omitempty"`
+	Address     *string `json:"address" binding:"omitempty"`
+}
+
 // PatientResponse defines the response structure for a single patient
 type PatientResponse struct {
 	ID             uint       `json:"id"`
