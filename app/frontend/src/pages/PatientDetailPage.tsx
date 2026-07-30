@@ -219,7 +219,8 @@ const PatientDetailPage: React.FC = () => {
       {/* Page title row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} />
+          {/* Explicit Back navigation to /patients list to prevent browser history loop */}
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/patients')} />
           <Title level={3} className="!mb-0">
             Hồ sơ Bệnh nhân: {patient.full_name}
           </Title>
@@ -229,6 +230,7 @@ const PatientDetailPage: React.FC = () => {
         <RequirePermission permission="can_edit_patient">
           <Button
             type="primary"
+            icon={<EditOutlined />}
             onClick={() => setEditFormOpen(true)}
             id="btn-edit-patient"
           >
