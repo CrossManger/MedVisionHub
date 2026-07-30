@@ -159,3 +159,52 @@ func (c *ScanController) GetByID(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"data": res})
 }
+
+// CompleteScan handles PUT /api/v1/scans/:id/complete
+// Marks the scan session as completed, stores the diagnostic result,
+// and triggers a realtime WebSocket notification to the patient.
+func (c *ScanController) CompleteScan(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID ca chụp không hợp lệ"})
+		return
+	}
+
+	var req dto.CompleteScanRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Dữ liệu không hợp lệ: " + err.Error()})
+		return
+	}
+
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực tài khoản"})
+		return
+	}
+	roleVal, _ := ctx.Get("role")
+
+	var userID uint
+	switch v := userIDVal.(type) {
+	case uint:
+		userID = v
+	case float64:
+		userID = uint(v)
+	}
+	roleName, _ := roleVal.(string)
+
+	if err := c.scanService.CompleteScan(uint(id), req, userID, roleName); err != nil {
+		switch {
+		case errors.Is(err, services.ErrScanNotFound):
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrScanAlreadyCompleted):
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		case errors.Is(err, services.ErrUnauthorizedPatientAccess):
+			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		default:
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Hoàn tất chẩn đoán thành công"})
+}

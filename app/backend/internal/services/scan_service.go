@@ -10,26 +10,50 @@ import (
 )
 
 var (
-	ErrScanNotFound               = errors.New("không tìm thấy ca chụp y tế")
+	ErrScanNotFound              = errors.New("không tìm thấy ca chụp y tế")
 	ErrUnauthorizedPatientAccess = errors.New("bạn chỉ có thể xem thông tin ca chụp thuộc hồ sơ cá nhân của mình")
+	ErrScanAlreadyCompleted      = errors.New("ca chụp này đã được hoàn tất")
 )
+
+// NotificationBroadcaster is a minimal interface that scan_service depends on
+// to trigger realtime notifications. Person A (WebSocket module) will implement this.
+type NotificationBroadcaster interface {
+	CreateAndBroadcast(userID uint, title, message, notifType, relatedEntity string, relatedID uint) error
+}
 
 type ScanService interface {
 	CreateScan(patientID uint, req dto.CreateScanRequest, doctorID uint) (*dto.ScanResponse, error)
 	GetScansByPatientID(patientID uint) (*dto.ScanListResponse, error)
 	GetMyScans(userID uint) (*dto.ScanListResponse, error)
 	GetScanByID(id uint, requestingUserID uint, requestingRole string) (*dto.ScanResponse, error)
+	CompleteScan(scanID uint, req dto.CompleteScanRequest, requestingUserID uint, requestingRole string) error
 }
 
 type scanService struct {
 	scanRepo    repos.ScanSessionRepository
 	patientRepo repos.PatientRepository
+	notifier    NotificationBroadcaster // may be nil if A has not wired it yet
 }
 
 func NewScanService(scanRepo repos.ScanSessionRepository, patientRepo repos.PatientRepository) ScanService {
 	return &scanService{
 		scanRepo:    scanRepo,
 		patientRepo: patientRepo,
+		notifier:    nil,
+	}
+}
+
+// NewScanServiceWithNotifier creates the service with an active notification broadcaster.
+// Called by main.go once A's hub is ready.
+func NewScanServiceWithNotifier(
+	scanRepo repos.ScanSessionRepository,
+	patientRepo repos.PatientRepository,
+	notifier NotificationBroadcaster,
+) ScanService {
+	return &scanService{
+		scanRepo:    scanRepo,
+		patientRepo: patientRepo,
+		notifier:    notifier,
 	}
 }
 
@@ -117,16 +141,55 @@ func (s *scanService) GetScanByID(id uint, requestingUserID uint, requestingRole
 	return &res, nil
 }
 
+// CompleteScan marks a scan session as "completed", persists the diagnostic result,
+// and broadcasts a realtime notification to the patient (if linked to a user account).
+func (s *scanService) CompleteScan(scanID uint, req dto.CompleteScanRequest, requestingUserID uint, requestingRole string) error {
+	scan, err := s.scanRepo.FindByID(scanID)
+	if err != nil {
+		return fmt.Errorf("lỗi lấy thông tin ca chụp: %w", err)
+	}
+	if scan == nil {
+		return ErrScanNotFound
+	}
+	if scan.Status == "completed" {
+		return ErrScanAlreadyCompleted
+	}
+
+	// Only doctors/admins can complete a scan
+	if requestingRole == "patient" {
+		return ErrUnauthorizedPatientAccess
+	}
+
+	if err := s.scanRepo.UpdateStatusAndResult(scanID, "completed", req.DiagnosticResult); err != nil {
+		return fmt.Errorf("lỗi cập nhật trạng thái ca chụp: %w", err)
+	}
+
+	// Broadcast realtime notification to the patient (best-effort, non-blocking)
+	if s.notifier != nil {
+		patient, err := s.patientRepo.FindByID(scan.PatientID)
+		if err == nil && patient != nil && patient.UserID != nil {
+			title := "Chẩn đoán hoàn tất"
+			message := fmt.Sprintf("Ca chụp #%d của bạn đã được bác sĩ hoàn tất chẩn đoán.", scanID)
+			relatedEntity := "scan_session"
+			_ = s.notifier.CreateAndBroadcast(*patient.UserID, title, message, "success", relatedEntity, scanID)
+		}
+	}
+
+	return nil
+}
+
 func mapScanToResponse(s *models.ScanSession, imageCount int64) dto.ScanResponse {
 	return dto.ScanResponse{
-		ID:         s.ID,
-		PatientID:  s.PatientID,
-		DoctorID:   s.DoctorID,
-		ScanType:   s.ScanType,
-		Status:     s.Status,
-		Notes:      s.Notes,
-		ImageCount: imageCount,
-		CreatedAt:  s.CreatedAt,
-		UpdatedAt:  s.UpdatedAt,
+		ID:               s.ID,
+		PatientID:        s.PatientID,
+		DoctorID:         s.DoctorID,
+		ScanType:         s.ScanType,
+		Status:           s.Status,
+		Notes:            s.Notes,
+		DiagnosticResult: s.DiagnosticResult,
+		ImageCount:       imageCount,
+		CreatedAt:        s.CreatedAt,
+		UpdatedAt:        s.UpdatedAt,
 	}
 }
+
