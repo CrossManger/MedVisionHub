@@ -3,13 +3,18 @@ package database
 import (
 	"log"
 	"medvision-hub/internal/models"
+	"medvision-hub/pkg/utils"
 )
 
 func strPtr(s string) *string {
 	return &s
 }
 
-// Seed populates the database with default roles and permissions
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+// Seed populates the database with default roles, permissions, and sample users
 func Seed() error {
 	if DB == nil {
 		return nil
@@ -27,7 +32,6 @@ func Seed() error {
 		if err := DB.FirstOrCreate(&role, models.Role{ID: role.ID}).Error; err != nil {
 			return err
 		}
-		// update details just in case
 		DB.Model(&role).Updates(models.Role{Name: role.Name, Description: role.Description})
 	}
 
@@ -63,6 +67,29 @@ func Seed() error {
 			rp := models.RolePermission{RoleID: roleID, PermissionID: permID}
 			if err := DB.FirstOrCreate(&rp, models.RolePermission{RoleID: roleID, PermissionID: permID}).Error; err != nil {
 				return err
+			}
+		}
+	}
+
+	// 4. Sample Demo Users
+	hashedPassword, err := utils.HashPassword("123456")
+	if err != nil {
+		log.Printf("Failed to hash default password: %v", err)
+	} else {
+		sampleUsers := []models.User{
+			{Username: "admin", Email: "admin@medvision.com", PasswordHash: hashedPassword, FullName: "Quản Trị Viên Hệ Thống", RoleID: 1, IsActive: boolPtr(true)},
+			{Username: "doctor", Email: "doctor@medvision.com", PasswordHash: hashedPassword, FullName: "BS. Nguyễn Văn Khám", RoleID: 2, IsActive: boolPtr(true)},
+			{Username: "patient", Email: "patient@medvision.com", PasswordHash: hashedPassword, FullName: "Trần Văn Bệnh Nhân", RoleID: 3, IsActive: boolPtr(true)},
+		}
+
+		for _, u := range sampleUsers {
+			var existing models.User
+			if err := DB.Where("username = ?", u.Username).First(&existing).Error; err != nil {
+				if err := DB.Create(&u).Error; err != nil {
+					log.Printf("Failed to create sample user %s: %v", u.Username, err)
+				} else {
+					log.Printf("Seeded sample user: %s", u.Username)
+				}
 			}
 		}
 	}

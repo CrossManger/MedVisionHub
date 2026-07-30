@@ -1,9 +1,10 @@
 export interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
-  fullName: string;
+  full_name: string;
   role: string;
+  permissions?: string[];
 }
 
 export interface LoginRequest {
@@ -11,12 +12,22 @@ export interface LoginRequest {
   password?: string;
 }
 
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
 export interface RegisterRequest {
-  username?: string;
-  email?: string;
-  password?: string;
-  fullName?: string;
+  username: string;
+  email: string;
+  password: string;
+  full_name: string;
   role?: string;
+}
+
+export interface RegisterResponse {
+  message: string;
+  user: User;
 }
 
 export interface AuthResponse {
