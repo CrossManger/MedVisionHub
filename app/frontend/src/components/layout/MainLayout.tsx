@@ -8,11 +8,11 @@ const { Content } = Layout;
 
 const MainLayout: React.FC = () => {
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-screen bg-gray-100">
       <AppSidebar />
-      <Layout>
+      <Layout className="bg-gray-100 min-h-screen">
         <AppHeader />
-        <Content className="m-6 p-6 bg-white rounded-lg shadow-sm">
+        <Content className="m-3 sm:m-6 p-4 sm:p-6 bg-white rounded-xl shadow-sm min-h-[calc(100vh-7rem)] overflow-x-hidden">
           <Outlet />
         </Content>
       </Layout>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DashboardOutlined, UserOutlined, SettingOutlined, MedicineBoxOutlined } from '@ant-design/icons';
+import { DashboardOutlined, UserOutlined, SettingOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 
 const { Sider } = Layout;
@@ -11,24 +11,27 @@ interface MenuItemDef {
   icon: React.ReactNode;
   label: string;
   permission?: string;
+  forRoles?: string[];
 }
 
 const AppSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const hasPermission = useAuthStore((state) => state.hasPermission);
+  const { user, hasPermission } = useAuthStore();
 
   const allMenuItems: MenuItemDef[] = [
     {
       key: '/',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
+      forRoles: ['admin', 'doctor'],
     },
     {
-      key: '/my-scans',
-      icon: <MedicineBoxOutlined />,
-      label: 'Hồ sơ Y tế của tôi',
+      key: '/my-profile',
+      icon: <IdcardOutlined />,
+      label: 'Hồ sơ Cá nhân',
       permission: 'can_view_image',
+      forRoles: ['patient'],
     },
     {
       key: '/patients',
@@ -44,9 +47,21 @@ const AppSidebar: React.FC = () => {
     },
   ];
 
+  const userRole = user?.role?.toLowerCase() || '';
+
   const filteredMenuItems = allMenuItems
-    .filter((item) => !item.permission || hasPermission(item.permission))
-    .map(({ permission, ...item }) => item);
+    .filter((item) => {
+      // Filter out items not meant for this specific role
+      if (item.forRoles && !item.forRoles.includes(userRole)) {
+        return false;
+      }
+      // Filter out items missing required permission
+      if (item.permission && !hasPermission(item.permission)) {
+        return false;
+      }
+      return true;
+    })
+    .map(({ permission, forRoles, ...item }) => item);
 
   return (
     <Sider

@@ -18,8 +18,10 @@ var (
 type PatientService interface {
 	GetAllPatients(page, limit int, search string) (*dto.PatientListResponse, error)
 	GetPatientByID(id uint) (*dto.PatientResponse, error)
+	GetMyPatient(userID uint) (*dto.PatientResponse, error)
 	CreatePatient(req dto.CreatePatientRequest, createdByUserID uint) (*dto.PatientResponse, error)
 	UpdatePatient(id uint, req dto.UpdatePatientRequest) (*dto.PatientResponse, error)
+	UpdateMyPatient(userID uint, req dto.UpdateMyPatientRequest) (*dto.PatientResponse, error)
 	DeletePatient(id uint) error
 }
 
@@ -66,6 +68,19 @@ func (s *patientService) GetPatientByID(id uint) (*dto.PatientResponse, error) {
 	patient, err := s.patientRepo.FindByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi lấy chi tiết bệnh nhân: %w", err)
+	}
+	if patient == nil {
+		return nil, ErrPatientNotFound
+	}
+
+	res := mapPatientToResponse(patient)
+	return &res, nil
+}
+
+func (s *patientService) GetMyPatient(userID uint) (*dto.PatientResponse, error) {
+	patient, err := s.patientRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi lấy thông tin bệnh nhân cá nhân: %w", err)
 	}
 	if patient == nil {
 		return nil, ErrPatientNotFound
@@ -132,6 +147,45 @@ func (s *patientService) UpdatePatient(id uint, req dto.UpdatePatientRequest) (*
 
 	if err := s.patientRepo.Update(patient); err != nil {
 		return nil, fmt.Errorf("lỗi cập nhật bệnh nhân: %w", err)
+	}
+
+	res := mapPatientToResponse(patient)
+	return &res, nil
+}
+
+func (s *patientService) UpdateMyPatient(userID uint, req dto.UpdateMyPatientRequest) (*dto.PatientResponse, error) {
+	patient, err := s.patientRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi kiểm tra bệnh nhân: %w", err)
+	}
+	if patient == nil {
+		return nil, ErrPatientNotFound
+	}
+
+	if req.FullName != nil && *req.FullName != "" {
+		patient.FullName = *req.FullName
+	}
+
+	if req.DateOfBirth != nil && *req.DateOfBirth != "" {
+		parsedDOB, err := time.Parse("2006-01-02", *req.DateOfBirth)
+		if err != nil {
+			return nil, fmt.Errorf("định dạng ngày sinh không hợp lệ (YYYY-MM-DD): %w", err)
+		}
+		patient.DateOfBirth = &parsedDOB
+	}
+
+	if req.Gender != nil {
+		patient.Gender = req.Gender
+	}
+	if req.Phone != nil {
+		patient.Phone = req.Phone
+	}
+	if req.Address != nil {
+		patient.Address = req.Address
+	}
+
+	if err := s.patientRepo.Update(patient); err != nil {
+		return nil, fmt.Errorf("lỗi cập nhật hồ sơ cá nhân: %w", err)
 	}
 
 	res := mapPatientToResponse(patient)

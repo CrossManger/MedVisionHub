@@ -68,7 +68,7 @@ Các tài liệu này phục vụ như một bản thiết kế (blueprint) và 
 | **Phase 3** | Patient Management | ✅ COMPLETED | 100% | 100% | 100% |
 | **Phase 4** | Scan Sessions & Image Data | ✅ COMPLETED | 100% | 100% | 100% |
 | **Phase 5** | Role & Permission Management | ✅ COMPLETED | 100% | 100% | 100% |
-| **Phase 6** | Real-time Notifications | ⏳ NOT STARTED | 0% | 0% | 0% |
+| **Phase 6** | Real-time Notifications | ✅ COMPLETED | 100% | 100% | 100% |
 
 ---
-*Cập nhật lần cuối: 2026-07-30 (Phase 5 hoàn thành — RBAC, Data Ownership, Patient Portal fully integrated)*
+*Cập nhật lần cuối: 2026-07-30 (Phase 6 hoàn thành 100% — Realtime WebSocket & CompleteScan integrated)*

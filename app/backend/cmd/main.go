@@ -9,6 +9,7 @@ import (
 	"medvision-hub/internal/middlewares"
 	"medvision-hub/internal/repos"
 	"medvision-hub/internal/services"
+	"medvision-hub/internal/websocket"
 	"medvision-hub/pkg/config"
 	"medvision-hub/pkg/database"
 
@@ -36,6 +37,10 @@ func main() {
 		}
 	}
 
+	// Initialize WebSocket Hub
+	wsHub := websocket.NewHub()
+	go wsHub.Run()
+
 	// Initialize repositories, services, controllers
 	userRepo := repos.NewUserRepository()
 	authService := services.NewAuthService(userRepo)
@@ -45,8 +50,12 @@ func main() {
 	patientService := services.NewPatientService(patientRepo)
 	patientController := controllers.NewPatientController(patientService)
 
+	notifRepo := repos.NewNotificationRepository()
+	notifService := services.NewNotificationService(notifRepo, wsHub)
+	notificationController := controllers.NewNotificationController(notifService)
+
 	scanRepo := repos.NewScanSessionRepository()
-	scanService := services.NewScanService(scanRepo, patientRepo)
+	scanService := services.NewScanServiceWithNotifier(scanRepo, patientRepo, notifService)
 	scanController := controllers.NewScanController(scanService)
 
 	imageRepo := repos.NewImageRepository()
@@ -91,6 +100,11 @@ func main() {
 		})
 	})
 
+	// WebSocket route for Real-time Notifications
+	r.GET("/ws/notifications", func(c *gin.Context) {
+		websocket.ServeWS(wsHub, c)
+	})
+
 	// API v1 routes
 	apiV1 := r.Group("/api/v1")
 	{
@@ -102,8 +116,17 @@ func main() {
 			authRoutes.POST("/reset-password", authController.ResetPassword)
 		}
 
-		// Patient Portal Route (Patient gets their own scans)
+		// Patient Portal Routes (Patient gets their own scans & profile)
 		apiV1.GET("/my-scans", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), scanController.GetMyScans)
+		apiV1.GET("/my-patient", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), patientController.GetMyPatient)
+		apiV1.PUT("/my-patient", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), patientController.UpdateMyPatient)
+
+		// Notifications REST routes
+		notificationRoutes := apiV1.Group("/notifications", middlewares.RequireAuth())
+		{
+			notificationRoutes.GET("", notificationController.GetNotifications)
+			notificationRoutes.PUT("/:id/read", notificationController.MarkAsRead)
+		}
 
 		// Protected Patient Routes with RBAC Middleware
 		patientRoutes := apiV1.Group("/patients", middlewares.RequireAuth())
@@ -123,6 +146,7 @@ func main() {
 		scanRoutes := apiV1.Group("/scans", middlewares.RequireAuth())
 		{
 			scanRoutes.GET("/:id", middlewares.RequirePermission("can_view_image"), scanController.GetByID)
+			scanRoutes.PUT("/:id/complete", middlewares.RequirePermission("can_create_scan"), scanController.CompleteScan)
 			scanRoutes.POST("/:id/images", middlewares.RequirePermission("can_upload_image"), imageController.Upload)
 			scanRoutes.GET("/:id/images", middlewares.RequirePermission("can_view_image"), imageController.GetByScan)
 		}

@@ -12,7 +12,9 @@ type CreateScanRequest struct {
 type ScanResponse struct {
 	ID               uint      `json:"id"`
 	PatientID        uint      `json:"patient_id"`
+	PatientName      string    `json:"patient_name,omitempty"`
 	DoctorID         uint      `json:"doctor_id"`
+	DoctorName       string    `json:"doctor_name,omitempty"`
 	ScanType         string    `json:"scan_type"`
 	Status           string    `json:"status"`
 	Notes            *string   `json:"notes"`

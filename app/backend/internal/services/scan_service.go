@@ -179,10 +179,25 @@ func (s *scanService) CompleteScan(scanID uint, req dto.CompleteScanRequest, req
 }
 
 func mapScanToResponse(s *models.ScanSession, imageCount int64) dto.ScanResponse {
+	var doctorName string
+	if s.Doctor.ID != 0 {
+		doctorName = s.Doctor.FullName
+		if doctorName == "" {
+			doctorName = s.Doctor.Username
+		}
+	}
+
+	var patientName string
+	if s.Patient.ID != 0 {
+		patientName = s.Patient.FullName
+	}
+
 	return dto.ScanResponse{
 		ID:               s.ID,
 		PatientID:        s.PatientID,
+		PatientName:      patientName,
 		DoctorID:         s.DoctorID,
+		DoctorName:       doctorName,
 		ScanType:         s.ScanType,
 		Status:           s.Status,
 		Notes:            s.Notes,
@@ -192,4 +207,3 @@ func mapScanToResponse(s *models.ScanSession, imageCount int64) dto.ScanResponse
 		UpdatedAt:        s.UpdatedAt,
 	}
 }
-
