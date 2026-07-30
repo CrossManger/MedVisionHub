@@ -110,11 +110,16 @@ const LoginPage: React.FC = () => {
             </Button>
           </Form.Item>
 
-          <div className="text-center mt-4">
-            <Text type="secondary">Chưa có tài khoản? </Text>
-            <Link to="/register" className="text-[#1677ff] font-semibold hover:underline">
-              Đăng ký ngay
+          <div className="flex items-center justify-between mt-4">
+            <Link to="/forgot-password" className="text-sm text-[#1677ff] hover:underline">
+              Quên mật khẩu?
             </Link>
+            <div>
+              <Text type="secondary" className="text-sm">Chưa có tài khoản? </Text>
+              <Link to="/register" className="text-sm text-[#1677ff] font-semibold hover:underline">
+                Đăng ký ngay
+              </Link>
+            </div>
           </div>
         </Form>
       </Card>
