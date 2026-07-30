@@ -49,15 +49,15 @@ func (c *AuthController) Register(ctx *gin.Context) {
 
 	res, err := c.authService.Register(req)
 	if err != nil {
-		if errors.Is(err, services.ErrUsernameExists) || errors.Is(err, services.ErrEmailExists) {
+		if errors.Is(err, services.ErrUsernameExists) || errors.Is(err, services.ErrEmailExists) || errors.Is(err, services.ErrPhoneExists) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, services.ErrRoleNotFound) {
+		if errors.Is(err, services.ErrRoleNotFound) || errors.Is(err, services.ErrAdminSelfRegister) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi hệ thống khi đăng ký tài khoản"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

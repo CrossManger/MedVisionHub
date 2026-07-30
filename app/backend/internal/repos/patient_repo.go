@@ -12,6 +12,7 @@ type PatientRepository interface {
 	FindAll(page, limit int, search string) ([]models.Patient, int64, error)
 	FindByID(id uint) (*models.Patient, error)
 	FindByUserID(userID uint) (*models.Patient, error)
+	FindByPhone(phone string) (*models.Patient, error)
 	Create(patient *models.Patient) error
 	Update(patient *models.Patient) error
 	Delete(id uint) error
@@ -64,6 +65,18 @@ func (r *patientRepository) FindByID(id uint) (*models.Patient, error) {
 func (r *patientRepository) FindByUserID(userID uint) (*models.Patient, error) {
 	var patient models.Patient
 	err := r.db.Where("user_id = ?", userID).First(&patient).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &patient, nil
+}
+
+func (r *patientRepository) FindByPhone(phone string) (*models.Patient, error) {
+	var patient models.Patient
+	err := r.db.Where("phone = ?", phone).First(&patient).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil

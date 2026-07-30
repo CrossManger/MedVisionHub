@@ -17,7 +17,7 @@ const ForgotPasswordPage: React.FC = () => {
       setError(null);
       setMessage(null);
       const res = await permissionService.forgotPassword({ email });
-      setMessage(res.message || 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.');
+      setMessage(res.message || 'Yêu cầu đặt lại mật khẩu đã được xử lý. Vui lòng lấy mã Token ở màn hình Terminal Backend.');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -48,8 +48,16 @@ const ForgotPasswordPage: React.FC = () => {
         )}
 
         {message && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
-            {message}
+          <div className="p-4 bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg space-y-3">
+            <p className="font-medium">{message}</p>
+            <div className="pt-2 border-t border-green-200">
+              <Link
+                to="/reset-password"
+                className="inline-flex items-center justify-center w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium text-sm rounded-md shadow transition-colors"
+              >
+                Nhập mã Token & Đặt lại mật khẩu ngay ➔
+              </Link>
+            </div>
           </div>
         )}
 
@@ -80,9 +88,12 @@ const ForgotPasswordPage: React.FC = () => {
           </div>
         </form>
 
-        <div className="text-center mt-4">
-          <Link to="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-            Quay lại trang Đăng nhập
+        <div className="flex items-center justify-between text-sm mt-4 pt-4 border-t border-gray-100">
+          <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            ← Quay lại Đăng nhập
+          </Link>
+          <Link to="/reset-password" className="font-medium text-indigo-600 hover:text-indigo-500">
+            Đã có Token? Đặt lại mật khẩu →
           </Link>
         </div>
       </div>

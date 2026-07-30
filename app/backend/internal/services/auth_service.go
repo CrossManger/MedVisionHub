@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"medvision-hub/internal/dto"
 	"medvision-hub/internal/models"
@@ -15,6 +16,7 @@ var (
 	ErrUserDisabled       = errors.New("Tài khoản đã bị vô hiệu hóa")
 	ErrUsernameExists     = errors.New("Tên đăng nhập đã tồn tại")
 	ErrEmailExists        = errors.New("Email đã tồn tại")
+	ErrPhoneExists        = errors.New("Số điện thoại này đã được sử dụng trong hệ thống")
 	ErrRoleNotFound       = errors.New("Role không tồn tại")
 	ErrAdminSelfRegister  = errors.New("Không thể tự đăng ký tài khoản Quản trị viên (Admin)")
 	ErrInvalidResetToken  = errors.New("Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn")
@@ -98,7 +100,19 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 		return nil, ErrEmailExists
 	}
 
-	// 3. Determine role (Public registration prohibits creating 'admin' role)
+	// 3. Check if phone already exists in patients records
+	if req.Phone != "" {
+		patientRepo := repos.NewPatientRepository()
+		existingPhone, err := patientRepo.FindByPhone(req.Phone)
+		if err != nil {
+			return nil, fmt.Errorf("lỗi kiểm tra số điện thoại: %w", err)
+		}
+		if existingPhone != nil {
+			return nil, ErrPhoneExists
+		}
+	}
+
+	// 4. Determine role (Public registration prohibits creating 'admin' role)
 	roleName := req.Role
 	if roleName == "admin" {
 		return nil, ErrAdminSelfRegister
@@ -115,13 +129,13 @@ func (s *authService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 		}
 	}
 
-	// 4. Hash password
+	// 5. Hash password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("lỗi băm mật khẩu: %w", err)
 	}
 
-	// 5. Create user model
+	// 6. Create user model
 	isActive := true
 	newUser := &models.User{
 		Username:     req.Username,
@@ -182,6 +196,15 @@ func (s *authService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 	if user == nil {
 		return nil
 	}
+
+	// Generate reset token (JWT)
+	resetToken, err := utils.GenerateToken(user.ID, user.Username, user.Role.Name)
+	if err != nil {
+		return fmt.Errorf("lỗi tạo token đặt lại mật khẩu: %w", err)
+	}
+
+	log.Printf("\n======================================================\n[RESET PASSWORD TOKEN DEMO]\nEmail: %s\nUser: %s (ID: %d)\nReset Token:\n%s\n======================================================\n", user.Email, user.Username, user.ID, resetToken)
+
 	return nil
 }
 
