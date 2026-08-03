@@ -19,6 +19,16 @@ func NewPatientController(patientService services.PatientService) *PatientContro
 	return &PatientController{patientService: patientService}
 }
 
+// GetDashboardStats handles GET /api/v1/dashboard/stats
+func (c *PatientController) GetDashboardStats(ctx *gin.Context) {
+	res, err := c.patientService.GetDashboardStats()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Không thể lấy dữ liệu thống kê dashboard: " + err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": res})
+}
+
 // GetAll handles GET /api/v1/patients
 // Query params: page (default 1), limit (default 10), search (optional)
 func (c *PatientController) GetAll(ctx *gin.Context) {

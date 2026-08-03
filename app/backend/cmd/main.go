@@ -116,6 +116,9 @@ func main() {
 			authRoutes.POST("/reset-password", authController.ResetPassword)
 		}
 
+		// Dashboard stats route
+		apiV1.GET("/dashboard/stats", middlewares.RequireAuth(), patientController.GetDashboardStats)
+
 		// Patient Portal Routes (Patient gets their own scans & profile)
 		apiV1.GET("/my-scans", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), scanController.GetMyScans)
 		apiV1.GET("/my-patient", middlewares.RequireAuth(), middlewares.RequirePermission("can_view_image"), patientController.GetMyPatient)

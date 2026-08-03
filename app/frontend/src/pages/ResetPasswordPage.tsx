@@ -1,47 +1,34 @@
 import React, { useState } from 'react';
+import { Form, Input, Button, Typography, Alert } from 'antd';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import permissionService from '../services/permissionService';
+
+const { Title, Text } = Typography;
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const tokenFromUrl = searchParams.get('token') || '';
-
-  const [token, setToken] = useState<string>(tokenFromUrl);
-  const [newPassword, setNewPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) {
-      setError('Vui lòng nhập Reset Token!');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError('Mật khẩu mới phải có tối thiểu 6 ký tự!');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onFinish = async (values: { token: string; new_password: string; confirm_password: string }) => {
+    if (values.new_password !== values.confirm_password) {
       setError('Mật khẩu xác nhận không khớp!');
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-      setMessage(null);
+      setSuccessMsg(null);
       const res = await permissionService.resetPassword({
-        token,
-        new_password: newPassword,
+        token: values.token,
+        new_password: values.new_password,
       });
-      setMessage(res.message || 'Đặt lại mật khẩu thành công!');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setSuccessMsg(res.message || 'Đặt lại mật khẩu thành công!');
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -54,93 +41,89 @@ const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-            Đặt lại mật khẩu
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Nhập token và mật khẩu mới của bạn bên dưới.
-          </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 16px' }}>
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <Title level={3} style={{ color: '#0c5da5', marginBottom: 4, fontWeight: 700 }}>
+            MedVision Hub
+          </Title>
+          <Text style={{ color: '#5a6d82', fontSize: 13 }}>
+            Đặt lại mật khẩu tài khoản
+          </Text>
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
+        {/* Card */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '32px 28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgb(0 0 0 / 0.04)' }}>
+          <Title level={4} style={{ marginBottom: 8, color: '#1a2b42', fontWeight: 600 }}>
+            Đặt lại mật khẩu
+          </Title>
+          <Text style={{ color: '#5a6d82', fontSize: 13, display: 'block', marginBottom: 24 }}>
+            Nhập mã Token và mật khẩu mới bên dưới.
+          </Text>
 
-        {message && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
-            {message}
-          </div>
-        )}
-
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          {!tokenFromUrl && (
-            <div>
-              <label htmlFor="token" className="block text-sm font-medium text-gray-700">
-                Reset Token
-              </label>
-              <input
-                id="token"
-                type="text"
-                required
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-                placeholder="Dán token vào đây..."
-              />
-            </div>
+          {error && (
+            <Alert description={error} type="error" showIcon closable onClose={() => setError(null)} style={{ marginBottom: 20, borderRadius: 8 }} />
           )}
 
-          <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-              Mật khẩu mới
-            </label>
-            <input
-              id="newPassword"
-              type="password"
-              required
-              minLength={6}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Tối thiểu 6 ký tự"
-            />
-          </div>
+          {successMsg && (
+            <Alert description={successMsg} type="success" showIcon style={{ marginBottom: 20, borderRadius: 8 }} />
+          )}
 
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-              Xác nhận mật khẩu mới
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Nhập lại mật khẩu mới"
-            />
-          </div>
+          <Form
+            name="reset"
+            onFinish={onFinish}
+            layout="vertical"
+            autoComplete="off"
+            requiredMark={false}
+            initialValues={{ token: tokenFromUrl }}
+          >
+            {!tokenFromUrl && (
+              <Form.Item
+                label="Reset Token"
+                name="token"
+                rules={[{ required: true, message: 'Vui lòng nhập Reset Token' }]}
+              >
+                <Input.TextArea rows={3} placeholder="Dán mã token từ Terminal Backend vào đây..." style={{ borderRadius: 8, fontFamily: 'monospace', fontSize: 12 }} />
+              </Form.Item>
+            )}
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+            <Form.Item
+              label="Mật khẩu mới"
+              name="new_password"
+              rules={[
+                { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+                { min: 6, message: 'Tối thiểu 6 ký tự' },
+              ]}
             >
-              {loading ? 'Đang cập nhật...' : 'Đặt lại mật khẩu'}
-            </button>
-          </div>
-        </form>
+              <Input.Password placeholder="Tối thiểu 6 ký tự" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
 
-        <div className="text-center mt-4">
-          <Link to="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-            Quay lại trang Đăng nhập
-          </Link>
+            <Form.Item
+              label="Xác nhận mật khẩu mới"
+              name="confirm_password"
+              rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu' }]}
+            >
+              <Input.Password placeholder="Nhập lại mật khẩu mới" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                size="large"
+                style={{ borderRadius: 8, height: 44, fontWeight: 500, background: '#0c5da5' }}
+              >
+                Đặt lại mật khẩu
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ textAlign: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+            <Link to="/login" style={{ fontSize: 13, color: '#0c5da5' }}>← Quay lại Đăng nhập</Link>
+          </div>
         </div>
       </div>
     </div>

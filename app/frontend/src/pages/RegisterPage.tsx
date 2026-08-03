@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Select, Alert, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined, SafetyOutlined, PhoneOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Typography, Select, Alert, message } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { RegisterRequest } from '../types/user';
@@ -50,165 +49,144 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-white py-10 px-4">
-      <Card className="w-full max-w-md shadow-2xl rounded-2xl border-0 overflow-hidden backdrop-blur-sm bg-white/90">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-100 text-[#1677ff] mb-3 shadow-inner">
-            <SafetyOutlined className="text-3xl" />
-          </div>
-          <Title level={2} className="!text-[#1677ff] !mb-1 font-bold tracking-tight">
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8', padding: '24px 0' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 16px' }}>
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <Title level={3} style={{ color: '#0c5da5', marginBottom: 4, fontWeight: 700 }}>
             MedVision Hub
           </Title>
-          <Text type="secondary" className="text-sm">
-            Tạo tài khoản mới để trải nghiệm hệ thống
+          <Text style={{ color: '#5a6d82', fontSize: 13 }}>
+            Tạo tài khoản mới
           </Text>
         </div>
 
-        {errorMessage && (
-          <Alert
-            message="Lỗi đăng ký"
-            description={errorMessage}
-            type="error"
-            showIcon
-            closable
-            onClose={() => setErrorMessage(null)}
-            className="mb-6 rounded-lg"
-          />
-        )}
+        {/* Card */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '32px 28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgb(0 0 0 / 0.04)' }}>
+          <Title level={4} style={{ marginBottom: 24, color: '#1a2b42', fontWeight: 600 }}>
+            Đăng ký tài khoản
+          </Title>
 
-        <Form
-          name="register"
-          onFinish={onFinish}
-          size="large"
-          layout="vertical"
-          initialValues={{ role: 'patient' }}
-          autoComplete="off"
-        >
-          <Form.Item
-            label="Họ và tên"
-            name="full_name"
-            rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
-          >
-            <Input 
-              prefix={<IdcardOutlined className="text-gray-400" />} 
-              placeholder="Nguyễn Văn A" 
-              className="rounded-lg"
+          {errorMessage && (
+            <Alert
+              description={errorMessage}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setErrorMessage(null)}
+              style={{ marginBottom: 20, borderRadius: 8 }}
             />
-          </Form.Item>
+          )}
 
-          <Form.Item
-            label="Tên đăng nhập"
-            name="username"
-            rules={[
-              { required: true, message: 'Vui lòng nhập tên đăng nhập!' },
-              { min: 3, message: 'Tên đăng nhập phải có ít nhất 3 ký tự!' },
-              { max: 100, message: 'Tên đăng nhập không vượt quá 100 ký tự!' }
-            ]}
+          <Form
+            name="register"
+            onFinish={onFinish}
+            layout="vertical"
+            initialValues={{ role: 'patient' }}
+            autoComplete="off"
+            requiredMark={false}
           >
-            <Input 
-              prefix={<UserOutlined className="text-gray-400" />} 
-              placeholder="username" 
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              { required: true, message: 'Vui lòng nhập email!' },
-              { type: 'email', message: 'Định dạng email không hợp lệ!' }
-            ]}
-          >
-            <Input 
-              prefix={<MailOutlined className="text-gray-400" />} 
-              placeholder="user@example.com" 
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Số điện thoại"
-            name="phone"
-            rules={[
-              { pattern: /^[0-9+\-\s]{7,20}$/, message: 'Số điện thoại không hợp lệ!' }
-            ]}
-          >
-            <Input 
-              prefix={<PhoneOutlined className="text-gray-400" />} 
-              placeholder="0901 234 567" 
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Mật khẩu"
-            name="password"
-            rules={[
-              { required: true, message: 'Vui lòng nhập mật khẩu!' },
-              { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' }
-            ]}
-          >
-            <Input.Password 
-              prefix={<LockOutlined className="text-gray-400" />} 
-              placeholder="Tối thiểu 6 ký tự" 
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Xác nhận mật khẩu"
-            name="confirmPassword"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password 
-              prefix={<LockOutlined className="text-gray-400" />} 
-              placeholder="Nhập lại mật khẩu" 
-              className="rounded-lg"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Vai trò"
-            name="role"
-            rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
-          >
-            <Select placeholder="Chọn vai trò" className="rounded-lg">
-              <Option value="patient">Bệnh nhân (Patient)</Option>
-              <Option value="doctor">Bác sĩ (Doctor)</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item className="mb-3">
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={loading}
-              className="w-full h-11 text-base font-medium rounded-lg shadow-md hover:shadow-lg transition-all"
+            <Form.Item
+              label="Họ và tên"
+              name="full_name"
+              rules={[{ required: true, message: 'Vui lòng nhập họ và tên' }]}
             >
-              Đăng ký ngay
-            </Button>
-          </Form.Item>
+              <Input placeholder="Nguyễn Văn A" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
 
-          <div className="text-center mt-4">
-            <Text type="secondary">Đã có tài khoản? </Text>
-            <Link to="/login" className="text-[#1677ff] font-semibold hover:underline">
+            <Form.Item
+              label="Tên đăng nhập"
+              name="username"
+              rules={[
+                { required: true, message: 'Vui lòng nhập tên đăng nhập' },
+                { min: 3, message: 'Tối thiểu 3 ký tự' },
+              ]}
+            >
+              <Input placeholder="username" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Vui lòng nhập email' },
+                { type: 'email', message: 'Email không hợp lệ' },
+              ]}
+            >
+              <Input placeholder="email@example.com" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[{ pattern: /^[0-9+\-\s]{7,20}$/, message: 'Số điện thoại không hợp lệ' }]}
+            >
+              <Input placeholder="0901 234 567" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Mật khẩu"
+              name="password"
+              rules={[
+                { required: true, message: 'Vui lòng nhập mật khẩu' },
+                { min: 6, message: 'Tối thiểu 6 ký tự' },
+              ]}
+            >
+              <Input.Password placeholder="Tối thiểu 6 ký tự" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Xác nhận mật khẩu"
+              name="confirmPassword"
+              dependencies={['password']}
+              rules={[
+                { required: true, message: 'Vui lòng xác nhận mật khẩu' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Mật khẩu xác nhận không khớp'));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password placeholder="Nhập lại mật khẩu" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Vai trò"
+              name="role"
+              rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+            >
+              <Select placeholder="Chọn vai trò" size="large" style={{ borderRadius: 8 }}>
+                <Option value="patient">Bệnh nhân</Option>
+                <Option value="doctor">Bác sĩ</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                size="large"
+                style={{ borderRadius: 8, height: 44, fontWeight: 500, background: '#0c5da5' }}
+              >
+                Đăng ký
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <Text style={{ color: '#5a6d82', fontSize: 13 }}>Đã có tài khoản?{' '}</Text>
+            <Link to="/login" style={{ fontSize: 13, fontWeight: 600, color: '#0c5da5' }}>
               Đăng nhập ngay
             </Link>
           </div>
-        </Form>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

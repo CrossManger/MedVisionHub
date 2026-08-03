@@ -44,6 +44,24 @@ export interface PatientListResponse {
   pagination: Pagination;
 }
 
+export interface ScansByType {
+  xray: number;
+  mri: number;
+  ct_scan: number;
+  ultrasound: number;
+}
+
+export interface DashboardStats {
+  total_patients: number;
+  total_scans: number;
+  completed_scans: number;
+  pending_scans: number;
+  in_progress_scans: number;
+  completion_rate: number;
+  scans_by_type: ScansByType;
+  recent_patients: Patient[];
+}
+
 export interface CreatePatientRequest {
   full_name: string;
   date_of_birth?: string; // YYYY-MM-DD

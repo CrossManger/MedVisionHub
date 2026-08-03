@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
+import { Form, Input, Button, Typography, Alert } from 'antd';
 import { Link } from 'react-router-dom';
 import permissionService from '../services/permissionService';
 
+const { Title, Text } = Typography;
+
 const ForgotPasswordPage: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-
+  const onFinish = async (values: { email: string }) => {
     try {
       setLoading(true);
       setError(null);
-      setMessage(null);
-      const res = await permissionService.forgotPassword({ email });
-      setMessage(res.message || 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.');
+      setSuccessMsg(null);
+      const res = await permissionService.forgotPassword({ email: values.email });
+      setSuccessMsg(res.message || 'Yêu cầu đã được xử lý. Vui lòng kiểm tra Terminal Backend để lấy mã Token.');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -30,60 +29,77 @@ const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md border border-gray-100">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-            Quên mật khẩu?
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Nhập email tài khoản của bạn để nhận liên kết đặt lại mật khẩu.
-          </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 16px' }}>
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <Title level={3} style={{ color: '#0c5da5', marginBottom: 4, fontWeight: 700 }}>
+            MedVision Hub
+          </Title>
+          <Text style={{ color: '#5a6d82', fontSize: 13 }}>
+            Khôi phục mật khẩu tài khoản
+          </Text>
         </div>
 
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
+        {/* Card */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: '32px 28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgb(0 0 0 / 0.04)' }}>
+          <Title level={4} style={{ marginBottom: 8, color: '#1a2b42', fontWeight: 600 }}>
+            Quên mật khẩu?
+          </Title>
+          <Text style={{ color: '#5a6d82', fontSize: 13, display: 'block', marginBottom: 24 }}>
+            Nhập email tài khoản để nhận hướng dẫn đặt lại mật khẩu.
+          </Text>
 
-        {message && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
-            {message}
-          </div>
-        )}
+          {error && (
+            <Alert description={error} type="error" showIcon closable onClose={() => setError(null)} style={{ marginBottom: 20, borderRadius: 8 }} />
+          )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Địa chỉ Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="example@medvision.com"
-            />
-          </div>
+          {successMsg && (
+            <div style={{ marginBottom: 20 }}>
+              <Alert description={successMsg} type="success" showIcon style={{ borderRadius: 8, marginBottom: 12 }} />
+              <Link to="/reset-password">
+                <Button
+                  type="primary"
+                  block
+                  size="large"
+                  style={{ borderRadius: 8, height: 44, fontWeight: 500, background: '#0d9f6e' }}
+                >
+                  Nhập mã Token & Đặt lại mật khẩu
+                </Button>
+              </Link>
+            </div>
+          )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+          <Form name="forgot" onFinish={onFinish} layout="vertical" autoComplete="off" requiredMark={false}>
+            <Form.Item
+              label="Địa chỉ Email"
+              name="email"
+              rules={[
+                { required: true, message: 'Vui lòng nhập email' },
+                { type: 'email', message: 'Email không hợp lệ' },
+              ]}
             >
-              {loading ? 'Đang gửi...' : 'Gửi yêu cầu đặt lại mật khẩu'}
-            </button>
-          </div>
-        </form>
+              <Input placeholder="email@example.com" size="large" style={{ borderRadius: 8 }} />
+            </Form.Item>
 
-        <div className="text-center mt-4">
-          <Link to="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-            Quay lại trang Đăng nhập
-          </Link>
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                size="large"
+                style={{ borderRadius: 8, height: 44, fontWeight: 500, background: '#0c5da5' }}
+              >
+                Gửi yêu cầu
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+            <Link to="/login" style={{ fontSize: 13, color: '#0c5da5' }}>← Đăng nhập</Link>
+            <Link to="/reset-password" style={{ fontSize: 13, color: '#0c5da5' }}>Đã có Token? →</Link>
+          </div>
         </div>
       </div>
     </div>

@@ -6,9 +6,18 @@ import type {
   UpdatePatientRequest,
   UpdateMyPatientRequest,
   CreatePatientResponse,
+  DashboardStats,
 } from '../types/patient';
 
 export const patientService = {
+  /**
+   * Get dashboard statistics directly from backend.
+   */
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const response = await apiClient.get<{ data: DashboardStats }>('/dashboard/stats');
+    return response.data.data;
+  },
+
   /**
    * Get paginated list of patients, with optional search by name.
    */
