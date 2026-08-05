@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Layout, Dropdown, Avatar, Badge, List, Typography, Empty } from 'antd';
-import { BellOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { BellOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationStore } from '../../stores/notificationStore';
 import { useWebSocket } from '../../hooks/useWebSocket';

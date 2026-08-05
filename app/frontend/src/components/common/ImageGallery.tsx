@@ -16,10 +16,11 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, onDeleteSucc
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const getImageUrl = (url: string) => {
+    if (!url) return '';
     if (url.startsWith('http')) return url;
     const baseUrl = import.meta.env.VITE_API_BASE_URL
-      ? import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '')
-      : 'http://localhost:8080';
+      ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '')
+      : '';
     return `${baseUrl}${url}`;
   };
 
