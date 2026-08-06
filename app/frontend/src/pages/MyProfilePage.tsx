@@ -26,7 +26,6 @@ import {
   EnvironmentOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
-  EyeOutlined,
   EditOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';

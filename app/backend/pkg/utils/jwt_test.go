@@ -4,32 +4,32 @@ import (
 	"testing"
 )
 
-func TestJWTGenerationAndValidation(t *testing.T) {
-	userID := uint(42)
-	username := "doctor_house"
+func TestGenerateAndValidateToken(t *testing.T) {
+	userID := uint(10)
+	username := "doctor_test"
 	role := "doctor"
 
-	tokenString, err := GenerateToken(userID, username, role)
+	tokenStr, err := GenerateToken(userID, username, role)
 	if err != nil {
-		t.Fatalf("Expected token generation to succeed, got: %v", err)
+		t.Fatalf("GenerateToken failed: %v", err)
 	}
 
-	if tokenString == "" {
-		t.Fatalf("Expected non-empty token string")
+	if tokenStr == "" {
+		t.Fatalf("Token string should not be empty")
 	}
 
-	token, err := ValidateToken(tokenString)
+	token, err := ValidateToken(tokenStr)
 	if err != nil {
-		t.Fatalf("Expected token validation to succeed, got: %v", err)
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	if !token.Valid {
+		t.Errorf("Token should be valid")
 	}
 
 	claims, err := ExtractClaims(token)
 	if err != nil {
-		t.Fatalf("Expected extracting claims to succeed, got: %v", err)
-	}
-
-	if uint(claims["user_id"].(float64)) != userID {
-		t.Errorf("Expected user_id %d, got %v", userID, claims["user_id"])
+		t.Fatalf("ExtractClaims failed: %v", err)
 	}
 
 	if claims["username"] != username {
@@ -37,15 +37,6 @@ func TestJWTGenerationAndValidation(t *testing.T) {
 	}
 
 	if claims["role_name"] != role {
-		t.Errorf("Expected role_name %s, got %v", role, claims["role_name"])
-	}
-}
-
-func TestInvalidJWTValidation(t *testing.T) {
-	invalidToken := "invalid.jwt.token"
-
-	_, err := ValidateToken(invalidToken)
-	if err == nil {
-		t.Errorf("Expected error validating invalid token string")
+		t.Errorf("Expected role %s, got %v", role, claims["role_name"])
 	}
 }

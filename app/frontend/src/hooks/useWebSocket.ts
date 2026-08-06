@@ -19,11 +19,11 @@ export const useWebSocket = () => {
     }
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Backend WS endpoint
-    const wsUrl = `${wsProtocol}//localhost:8080/ws/notifications?token=${token}`;
+    const wsHost = window.location.host;
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications?token=${token}`;
 
     let socket: WebSocket | null = null;
-    let reconnectTimer: NodeJS.Timeout | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       try {

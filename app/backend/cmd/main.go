@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"medvision-hub/internal/controllers"
 	"medvision-hub/internal/middlewares"
@@ -72,9 +73,13 @@ func main() {
 	r := gin.Default()
 
 	// CORS Middleware setup
-	allowedOrigins := config.GetEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+	allowedOriginsRaw := config.GetEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173")
+	originsList := strings.Split(allowedOriginsRaw, ",")
+	for i := range originsList {
+		originsList[i] = strings.TrimSpace(originsList[i])
+	}
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{allowedOrigins},
+		AllowOrigins:     originsList,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
