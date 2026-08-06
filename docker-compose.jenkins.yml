@@ -10,6 +10,7 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
+      - /home/minhvh/Self_Study/MedVisionHub:/var/jenkins_home/MedVisionHub:ro
     restart: always
 
 volumes:
