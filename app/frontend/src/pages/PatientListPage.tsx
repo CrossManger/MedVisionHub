@@ -137,10 +137,11 @@ const PatientListPage: React.FC = () => {
       title: 'Họ và tên',
       dataIndex: 'full_name',
       key: 'full_name',
+      width: 180,
       render: (name: string, record: Patient) => (
         <Button
           type="link"
-          className="!p-0 !font-medium"
+          className="!p-0 !font-medium text-left whitespace-normal h-auto leading-normal"
           onClick={() => navigate(`/patients/${record.id}`)}
         >
           {name}
@@ -292,7 +293,7 @@ const PatientListPage: React.FC = () => {
         columns={columns}
         dataSource={patients}
         loading={loading}
-        scroll={{ x: 800 }}
+        scroll={{ x: 900 }}
         pagination={{
           current: pagination.page,
           pageSize: pagination.limit,
