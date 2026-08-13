@@ -45,7 +45,7 @@ pipeline {
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         -v "${WORKSPACE}":/app \
                         -w /app \
-                        docker:cli sh -c "apk add --no-cache curl > /dev/null 2>&1 && chmod +x ./scripts/deploy-blue-green.sh && ./scripts/deploy-blue-green.sh"
+                        docker:cli sh -c "apk add --no-cache curl bash > /dev/null 2>&1 && chmod +x ./scripts/deploy-blue-green.sh && ./scripts/deploy-blue-green.sh"
                 '''
             }
         }
