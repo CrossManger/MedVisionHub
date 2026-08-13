@@ -1,0 +1,98 @@
+# ═══════════════════════════════════════════════════════════════
+# MedVisionHub — Docker Compose for Blue-Green Deployment
+# ═══════════════════════════════════════════════════════════════
+# File này thay thế docker-compose.yml khi chạy Zero-Downtime
+# Bao gồm: PostgreSQL + Backend Blue + Backend Green + Frontend
+# ═══════════════════════════════════════════════════════════════
+
+services:
+  # ── PostgreSQL Database ─────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: medvision-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_DB: ${DB_NAME:-medvisionhub}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-medvisionhub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Blue (Port 8082) ────────────────────────────────
+  backend-blue:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    container_name: medvision-backend-blue
+    restart: unless-stopped
+    environment:
+      APP_PORT: "8080"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_NAME: ${DB_NAME:-medvisionhub}
+      JWT_SECRET: ${JWT_SECRET:-medvision_secret_key_production_local}
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      UPLOAD_DIR: "./uploads"
+    ports:
+      - "8082:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Backend Green (Port 8083) ───────────────────────────────
+  backend-green:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    container_name: medvision-backend-green
+    restart: unless-stopped
+    environment:
+      APP_PORT: "8080"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_NAME: ${DB_NAME:-medvisionhub}
+      JWT_SECRET: ${JWT_SECRET:-medvision_secret_key_production_local}
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      UPLOAD_DIR: "./uploads"
+    ports:
+      - "8083:8080"
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── React + Nginx Frontend (Gateway) ────────────────────────
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    container_name: medvision-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    volumes:
+      # Mount nginx directory từ host để đồng bộ file cấu hình runtime
+      # mà không bị lỗi Resource Busy khi sed -i
+      - ./nginx:/etc/nginx/conf.d
+
+volumes:
+  postgres_data:
+    driver: local
+  # Volume chung cho uploads — cả Blue và Green dùng chung
+  # để file ảnh y tế không bị mất khi switch
+  backend_uploads:
+    driver: local

@@ -34,7 +34,22 @@ pipeline {
                 echo "=== Stage 4: Verifying Docker Compose Build ==="
                 sh '''
                     HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}"
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOST_PATH}":/app -w /app docker:cli docker compose build
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOST_PATH}":/app -w /app docker:cli docker compose -f docker-compose.blue-green.yml build
+                '''
+            }
+        }
+
+        stage('Blue-Green Deploy') {
+            steps {
+                echo "=== Stage 5: Zero-Downtime Blue-Green Deployment ==="
+                sh '''
+                    HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}"
+                    docker run --rm \
+                        --network host \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v "${HOST_PATH}":/app \
+                        -w /app \
+                        docker:cli sh -c "apk add --no-cache curl > /dev/null 2>&1 && chmod +x ./scripts/deploy-blue-green.sh && ./scripts/deploy-blue-green.sh"
                 '''
             }
         }
@@ -42,13 +57,14 @@ pipeline {
 
     post {
         success {
-            echo "✅ PIPELINE SUCCESS: All tests and builds passed successfully!"
+            echo "✅ PIPELINE SUCCESS: All tests passed & Zero-Downtime Deploy completed!"
         }
         failure {
-            echo "❌ PIPELINE FAILED: Build or Unit Tests encountered errors."
+            echo "❌ PIPELINE FAILED: Build, Tests, or Deployment encountered errors."
         }
         always {
             echo "🧹 Cleanup after build completion."
         }
     }
 }
+

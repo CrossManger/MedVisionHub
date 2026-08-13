@@ -22,20 +22,18 @@ func main() {
 	// Load environment config
 	config.LoadConfig()
 
-	// Connect to Database
-	err := database.Connect()
-	if err != nil {
-		log.Printf("Failed to connect to database: %v\n", err)
-		log.Println("Continuing without database connection...")
-	} else {
-		// Run AutoMigrate
-		if err := database.AutoMigrate(); err != nil {
-			log.Fatalf("AutoMigrate failed: %v", err)
-		}
-		// Seed default data
-		if err := database.Seed(); err != nil {
-			log.Fatalf("Database seeding failed: %v", err)
-		}
+	// Connect to Database with Retry Loop
+	if err := database.Connect(); err != nil {
+		log.Fatalf("Fatal: %v", err)
+	}
+
+	// Run AutoMigrate
+	if err := database.AutoMigrate(); err != nil {
+		log.Fatalf("AutoMigrate failed: %v", err)
+	}
+	// Seed default data
+	if err := database.Seed(); err != nil {
+		log.Fatalf("Database seeding failed: %v", err)
 	}
 
 	// Initialize WebSocket Hub
