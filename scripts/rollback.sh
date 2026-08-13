@@ -46,6 +46,7 @@ echo ""
 
 # ── Start: Khởi động lại container cũ ────────────────────────
 echo "📦 Starting backend-${ROLLBACK_COLOR}..."
+docker compose -f "${COMPOSE_FILE}" up -d postgres frontend
 docker compose -f "${COMPOSE_FILE}" up -d "backend-${ROLLBACK_COLOR}"
 echo ""
 

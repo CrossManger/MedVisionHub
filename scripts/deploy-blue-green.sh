@@ -52,6 +52,8 @@ echo ""
 
 # ── 2. Build & Start: Khởi động container mới ────────────────
 echo "📦 [Step 2/5] Building and starting backend-${TARGET_COLOR}..."
+# Đảm bảo postgres và frontend (Nginx Gateway) luôn ở trạng thái chạy
+docker compose -f "${COMPOSE_FILE}" up -d postgres frontend
 docker compose -f "${COMPOSE_FILE}" up -d --build "backend-${TARGET_COLOR}"
 echo "   ✅ Container backend-${TARGET_COLOR} started"
 echo ""
