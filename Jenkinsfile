@@ -13,8 +13,7 @@ pipeline {
             steps {
                 echo "=== Stage 2: Running Go Backend Unit Tests in Isolated Docker Container ==="
                 sh '''
-                    HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}/app/backend"
-                    docker run --rm -v "${HOST_PATH}":/app -w /app golang:alpine go test -v ./...
+                    docker run --rm -v "${WORKSPACE}/app/backend":/app -w /app golang:alpine go test -v ./...
                 '''
             }
         }
@@ -23,8 +22,7 @@ pipeline {
             steps {
                 echo "=== Stage 3: Running Frontend Type Check & Build in Isolated Docker Container ==="
                 sh '''
-                    HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}/app/frontend"
-                    docker run --rm -v "${HOST_PATH}":/app -w /app node:22-alpine sh -c "npm install && npx tsc --noEmit && npm run build"
+                    docker run --rm -v "${WORKSPACE}/app/frontend":/app -w /app node:22-alpine sh -c "npm install && npx tsc --noEmit && npm run build"
                 '''
             }
         }
@@ -33,8 +31,7 @@ pipeline {
             steps {
                 echo "=== Stage 4: Verifying Docker Compose Build ==="
                 sh '''
-                    HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}"
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${HOST_PATH}":/app -w /app docker:cli docker compose -f docker-compose.blue-green.yml build
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "${WORKSPACE}":/app -w /app docker:cli docker compose -f docker-compose.blue-green.yml build
                 '''
             }
         }
@@ -43,11 +40,10 @@ pipeline {
             steps {
                 echo "=== Stage 5: Zero-Downtime Blue-Green Deployment ==="
                 sh '''
-                    HOST_PATH="/home/minhvh/jenkins_data/workspace/${JOB_NAME}"
                     docker run --rm \
                         --network host \
                         -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v "${HOST_PATH}":/app \
+                        -v "${WORKSPACE}":/app \
                         -w /app \
                         docker:cli sh -c "apk add --no-cache curl > /dev/null 2>&1 && chmod +x ./scripts/deploy-blue-green.sh && ./scripts/deploy-blue-green.sh"
                 '''
