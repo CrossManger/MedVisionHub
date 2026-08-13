@@ -22,7 +22,7 @@ pipeline {
             steps {
                 echo "=== Stage 3: Running Frontend Type Check & Build in Isolated Docker Container ==="
                 sh '''
-                    docker run --rm -v "${WORKSPACE}/app/frontend":/app -w /app node:22-alpine sh -c "npm install && npx tsc --noEmit && npm run build"
+                    docker run --rm -v "${WORKSPACE}/app/frontend":/app -w /app node:22-slim sh -c "npm install && npx tsc --noEmit && npm run build"
                 '''
             }
         }
