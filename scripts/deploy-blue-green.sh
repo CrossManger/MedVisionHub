@@ -21,8 +21,8 @@ set -euo pipefail
 COMPOSE_FILE="docker-compose.blue-green.yml"
 NGINX_CONF="./nginx/nginx.conf"
 FRONTEND_CONTAINER="medvision-frontend"
-BLUE_PORT="8082"
-GREEN_PORT="8083"
+BLUE_PORT="18082"
+GREEN_PORT="18083"
 HEALTH_ENDPOINT="/api/health"
 MAX_RETRIES=15
 RETRY_INTERVAL=2
